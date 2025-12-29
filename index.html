@@ -156,7 +156,7 @@ tr:hover{background:#2a2a6a}
 </div>
 
 <div class="summary" id="summary"></div>
-<div class="version">v4.3</div>
+<div class="version">v4.5</div>
 </div>
 
 <script>
@@ -203,6 +203,16 @@ function updateYieldTotal() {
 document.getElementById('runBtn').addEventListener('click', runSimulation);
 
 function runSimulation() {
+  const gmPctVal = +document.getElementById('gmPct').value || 0;
+  const clmmPctVal = +document.getElementById('clmmPct').value || 0;
+  const reservePctVal = +document.getElementById('reservePct').value || 0;
+  const yieldTotal = gmPctVal + clmmPctVal + reservePctVal;
+  
+  if (yieldTotal !== 100) {
+    alert('⚠️ Сумма Yield Zone должна быть 100%!\n\nСейчас: ' + yieldTotal + '%\n\nGM Pool: ' + gmPctVal + '%\nCLMM: ' + clmmPctVal + '%\nReserve: ' + reservePctVal + '%');
+    return;
+  }
+
   const total = +document.getElementById('totalPortfolio').value;
   const sliderVal = +document.getElementById('growthSlider').value;
   const growthPct = (100 - sliderVal) / 100;
@@ -210,9 +220,9 @@ function runSimulation() {
   const btcStart = +document.getElementById('btcPrice').value;
   const initLTV = +document.getElementById('initLTV').value / 100;
   const liqThresh = +document.getElementById('liqThreshold').value / 100;
-  const gmPct = +document.getElementById('gmPct').value / 100;
-  const clmmPct = +document.getElementById('clmmPct').value / 100;
-  const reservePct = +document.getElementById('reservePct').value / 100;
+  const gmPct = gmPctVal / 100;
+  const clmmPct = clmmPctVal / 100;
+  const reservePct = reservePctVal / 100;
 
   const growthZone = total * growthPct;
   let stabilityZone = total * stabilityPct;
@@ -360,6 +370,10 @@ function runSimulation() {
           logHTML += '<div class="log-step log-clmm">5. Открываем CLMM #2 из Reserve:</div>';
           logHTML += '<div class="log-calc">• Сумма: ' + fmtUSD(clmmValue) + '</div>';
           logHTML += '<div class="log-calc">• Ренж: ' + fmtUSD(btcPrice*0.85) + ' - ' + fmtUSD(btcPrice*1.05) + '</div>';
+        } else {
+          clmmValue = 0;
+          clmmActive = false;
+          logHTML += '<div class="log-calc" style="color:#ffaa00">• Reserve = 0, CLMM больше не открываем</div>';
         }
       } else if (drop === -30 && clmmActive && clmmGeneration === 2) {
         const clmmExitPrice = clmmEntryPrice * 0.85;
