@@ -114,6 +114,12 @@ const ylRatio = debt > 0 ? (gmValue + clmmValue + reserve) / debt : 0;
 | -50% | Продать всё | STOP | 40% → GM |
 | -70% | Продать всё | STOP | 30% → GM |
 
+### Особый случай: CLMM = 0%
+
+Если изначально CLMM = 0%, то при -15%:
+- CLMM не открывается (её нет)
+- **Reserve → GM** (вместо открытия CLMM#2)
+
 ---
 
 ## Правила разработки
@@ -189,7 +195,7 @@ document.getElementById('input').addEventListener('input', handleChange);
 
 ### Edge cases
 1. Reserve = 0% → CLMM не переоткрывается после -15%
-2. CLMM = 0% → Только GM в Yield Zone
+2. CLMM = 0% → Только GM в Yield Zone, при -15% Reserve → GM
 3. Stability = 0% → Нет докупок при просадках
 4. Падение -70% → S/G Ratio должен быть 0 (не Infinity)
 

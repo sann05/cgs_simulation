@@ -234,7 +234,7 @@ function runSimulation() {
   let gmValue = debt * gmPct;
   let clmmValue = debt * clmmPct;
   let clmmEntryPrice = btcStart;
-  let clmmActive = true;
+  let clmmActive = clmmPct > 0; // false если CLMM = 0%
   let clmmGeneration = 1;
   let reserve = debt * reservePct;
   const initialReserve = reserve;
@@ -382,7 +382,7 @@ function runSimulation() {
         logHTML += '<div class="log-calc">• Entry: ' + fmtUSD(clmmEntryPrice) + ' → Exit: ' + fmtUSD(clmmExitPrice) + '</div>';
         logHTML += '<div class="log-calc">• Avg price: ' + fmtUSD(Math.sqrt(clmmEntryPrice*clmmExitPrice)) + '</div>';
         logHTML += '<div class="log-calc">• BTC получено: <span class="log-result">' + fmt(clmmBtc,6) + '</span></div>';
-        
+
         // Open new CLMM from Reserve
         if (reserve > 0) {
           clmmValue = reserve;
@@ -398,6 +398,15 @@ function runSimulation() {
           clmmActive = false;
           logHTML += '<div class="log-calc" style="color:#ffaa00">• Reserve = 0, CLMM больше не открываем</div>';
         }
+      } else if (drop === -15 && clmmPct === 0 && reserve > 0) {
+        // Если CLMM = 0%, Reserve идёт на покупку GM при -15%
+        gmValue += reserve;
+        prevGmValue = gmValue; // Обновляем для следующей итерации
+        actions.push('Reserve → GM');
+        logHTML += '<div class="log-step" style="color:#ff6b9d">4. CLMM = 0%, Reserve → GM:</div>';
+        logHTML += '<div class="log-calc">• Reserve ' + fmtUSD(reserve) + ' → GM</div>';
+        logHTML += '<div class="log-calc">• GM после: <span class="log-result">' + fmtUSD(gmValue) + '</span></div>';
+        reserve = 0;
       } else if (drop === -30 && clmmActive && clmmGeneration === 2) {
         const clmmExitPrice = clmmEntryPrice * 0.85;
         const clmmBtc = calcCLMMBtc(clmmValue, clmmEntryPrice, clmmExitPrice);
