@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
-<title>CGS Portfolio Simulation v4</title>
+<title>CGS Portfolio Simulation v4 (Extended)</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
@@ -82,7 +82,7 @@ tr:hover{background:#2a2a6a}
 </div>
 
 <div class="container content-hidden" id="mainContent">
-<h1>📊 Capital Growth Strategy — Симуляция</h1>
+<h1>📊 Capital Growth Strategy — Симуляция (Extended)</h1>
 
 <div class="disclaimer">
 ⚡ Симуляция показывает <b>только защитную механику</b> при падении рынка.<br>
@@ -136,7 +136,7 @@ tr:hover{background:#2a2a6a}
 <table id="resultsTable">
 <thead><tr>
 <th>Drop</th><th>BTC Price</th><th>Collateral BTC</th><th>Collateral $</th><th>Debt</th><th>HF</th><th>LTV</th>
-<th>GM $</th><th>CLMM $</th><th>Reserve $</th><th>Stability $</th><th>BTC добавлено</th><th>Действия</th>
+<th>GM $</th><th>CLMM $</th><th>Reserve $</th><th>Stability $</th><th>S/G до</th><th>S/G после</th><th>Y/L до</th><th>Y/L после</th><th>BTC добавлено</th><th>Действия</th>
 </tr></thead>
 <tbody></tbody>
 </table>
@@ -156,7 +156,7 @@ tr:hover{background:#2a2a6a}
 </div>
 
 <div class="summary" id="summary"></div>
-<div class="version">v4.7</div>
+<div class="version">v4.8</div>
 </div>
 
 <script>
@@ -286,6 +286,10 @@ function runSimulation() {
 
     logHTML += '<div class="log-level"><h4>📍 Уровень ' + drop + '% | BTC = ' + fmtUSD(btcPrice) + '</h4>';
 
+    // Сохраняем значения ДО действий для расчёта ratios
+    let sgRatioBefore = 0;
+    let ylRatioBefore = 0;
+
     if (i === 0) {
       actions.push('Начальное состояние');
       logHTML += '<div class="log-step">Начальное состояние:</div>';
@@ -296,6 +300,25 @@ function runSimulation() {
       logHTML += '<div class="log-calc">• Reserve (' + (reservePct*100) + '%): ' + fmtUSD(reserve) + '</div>';
       logHTML += '<div class="log-calc">• Stability Zone: ' + fmtUSD(stabilityZone) + '</div>';
     } else {
+      // Расчёт ratios ДО действий (с новой ценой, но до ребалансировки)
+      const collateralValBefore = collateralBTC * btcPrice;
+      const gmRatioPre = Math.sqrt(btcPrice / prevBtcPrice);
+      const gmValueBefore = prevGmValue * gmRatioPre;
+
+      // CLMM value тоже пересчитываем для "до" (пассивное изменение в ренже)
+      let clmmValueBefore = clmmValue;
+      if (clmmActive && clmmValue > 0) {
+        const clmmLowerPre = clmmEntryPrice * 0.85;
+        const clmmUpperPre = clmmEntryPrice * 1.05;
+        clmmValueBefore = calcCLMMValue(clmmValue, clmmEntryPrice, btcPrice, clmmLowerPre, clmmUpperPre);
+      }
+
+      const totalStablesBefore = stabilityZone + reserve;
+      const yieldTotalBefore = gmValueBefore + clmmValueBefore + reserve;
+      sgRatioBefore = collateralValBefore > 0 ? totalStablesBefore / collateralValBefore : 0;
+      ylRatioBefore = debt > 0 ? yieldTotalBefore / debt : 0;
+
+      logHTML += '<div class="log-step" style="color:#888;font-size:0.9em">📊 Ratios ДО действий: S/G = ' + fmt(sgRatioBefore,3) + ' | Y/L = ' + fmt(ylRatioBefore,3) + '</div>';
       // === GM LOGIC ===
       const gmRatio = Math.sqrt(btcPrice / prevBtcPrice);
       let gmBefore = prevGmValue * gmRatio;
@@ -398,15 +421,37 @@ function runSimulation() {
     const collateralVal = collateralBTC * btcPrice;
     const hf = (collateralVal * liqThresh) / debt;
     const ltv = (debt / collateralVal) * 100;
-
+    
+    // Stability/Growth Ratio = Все стейблкоины / Collateral $
+    const totalStables = stabilityZone + reserve;
+    const sgRatio = collateralVal > 0 ? totalStables / collateralVal : 0;
+    
+    // Yield/Loan Ratio = Yield Zone total / Debt
+    const yieldTotal = gmValue + clmmValue + reserve;
+    const ylRatio = debt > 0 ? yieldTotal / debt : 0;
+    
     const hfClass = hf>1.5 ? 'positive' : hf>1.2 ? 'warning' : 'danger';
     const ltvClass = ltv>75 ? 'danger' : ltv>65 ? 'warning' : '';
     logHTML += '<div class="log-step" style="margin-top:10px;padding-top:10px;border-top:1px solid #333">Метрики: HF = <span class="' + hfClass + '">' + fmt(hf,2) + '</span> | LTV = <span class="' + ltvClass + '">' + fmt(ltv,1) + '%</span></div>';
+
+    // Показываем ratios ПОСЛЕ действий с дельтой
+    if (i > 0) {
+      const sgDelta = sgRatio - sgRatioBefore;
+      const ylDelta = ylRatio - ylRatioBefore;
+      const sgDeltaStr = sgDelta >= 0 ? '+' + fmt(sgDelta,3) : fmt(sgDelta,3);
+      const ylDeltaStr = ylDelta >= 0 ? '+' + fmt(ylDelta,3) : fmt(ylDelta,3);
+      const sgColor = sgDelta >= 0 ? '#00ff88' : '#ff4444';
+      const ylColor = ylDelta >= 0 ? '#00ff88' : '#ff4444';
+      logHTML += '<div class="log-step" style="color:#00d4aa">📊 Ratios ПОСЛЕ действий: S/G = ' + fmt(sgRatio,3) + ' (<span style="color:' + sgColor + '">' + sgDeltaStr + '</span>) | Y/L = ' + fmt(ylRatio,3) + ' (<span style="color:' + ylColor + '">' + ylDeltaStr + '</span>)</div>';
+    } else {
+      logHTML += '<div class="log-step" style="color:#00d4aa">📊 Начальные Ratios: S/G = ' + fmt(sgRatio,3) + ' | Y/L = ' + fmt(ylRatio,3) + '</div>';
+    }
     logHTML += '</div>';
 
     results.push({
       drop, btcPrice, collateralBTC, collateralVal, debt, hf, ltv,
-      gmValue, clmmValue, reserve, stabilityZone, btcAdded,
+      gmValue, clmmValue, reserve, stabilityZone,
+      sgRatioBefore, sgRatio, ylRatioBefore, ylRatio, btcAdded,
       actions: actions.join('; ') || '-'
     });
     
@@ -424,7 +469,22 @@ function renderTable(data) {
   tbody.innerHTML = data.map(r => {
     const hfC = r.hf>1.5?'positive':r.hf>1.2?'warning':'danger';
     const ltvC = r.ltv>75?'danger':r.ltv>65?'warning':'';
-    return '<tr><td><b>'+r.drop+'%</b></td><td>'+fmtUSD(r.btcPrice)+'</td><td><b>'+fmt(r.collateralBTC,4)+'</b></td><td>'+fmtUSD(r.collateralVal)+'</td><td>'+fmtUSD(r.debt)+'</td><td class="'+hfC+'"><b>'+fmt(r.hf,2)+'</b></td><td class="'+ltvC+'">'+fmt(r.ltv,1)+'%</td><td>'+fmtUSD(r.gmValue)+'</td><td>'+fmtUSD(r.clmmValue)+'</td><td>'+fmtUSD(r.reserve)+'</td><td>'+fmtUSD(r.stabilityZone)+'</td><td>'+(r.btcAdded>0?fmt(r.btcAdded,4):'-')+'</td><td class="action-cell">'+r.actions+'</td></tr>';
+
+    // S/G Ratio до/после с дельтой
+    const sgBefore = r.sgRatioBefore > 0 ? fmt(r.sgRatioBefore,2) : '-';
+    const sgAfter = fmt(r.sgRatio,2);
+    const sgDelta = r.sgRatioBefore > 0 ? r.sgRatio - r.sgRatioBefore : 0;
+    const sgDeltaClass = sgDelta > 0 ? 'positive' : sgDelta < 0 ? 'danger' : '';
+    const sgDeltaStr = r.sgRatioBefore > 0 ? ' <span class="'+sgDeltaClass+'" style="font-size:0.8em">('+(sgDelta>=0?'+':'')+fmt(sgDelta,2)+')</span>' : '';
+
+    // Y/L Ratio до/после с дельтой
+    const ylBefore = r.ylRatioBefore > 0 ? fmt(r.ylRatioBefore,2) : '-';
+    const ylAfter = fmt(r.ylRatio,2);
+    const ylDelta = r.ylRatioBefore > 0 ? r.ylRatio - r.ylRatioBefore : 0;
+    const ylDeltaClass = ylDelta > 0 ? 'positive' : ylDelta < 0 ? 'danger' : '';
+    const ylDeltaStr = r.ylRatioBefore > 0 ? ' <span class="'+ylDeltaClass+'" style="font-size:0.8em">('+(ylDelta>=0?'+':'')+fmt(ylDelta,2)+')</span>' : '';
+
+    return '<tr><td><b>'+r.drop+'%</b></td><td>'+fmtUSD(r.btcPrice)+'</td><td><b>'+fmt(r.collateralBTC,4)+'</b></td><td>'+fmtUSD(r.collateralVal)+'</td><td>'+fmtUSD(r.debt)+'</td><td class="'+hfC+'"><b>'+fmt(r.hf,2)+'</b></td><td class="'+ltvC+'">'+fmt(r.ltv,1)+'%</td><td>'+fmtUSD(r.gmValue)+'</td><td>'+fmtUSD(r.clmmValue)+'</td><td>'+fmtUSD(r.reserve)+'</td><td>'+fmtUSD(r.stabilityZone)+'</td><td>'+sgBefore+'</td><td><b>'+sgAfter+'</b>'+sgDeltaStr+'</td><td>'+ylBefore+'</td><td><b>'+ylAfter+'</b>'+ylDeltaStr+'</td><td>'+(r.btcAdded>0?fmt(r.btcAdded,4):'-')+'</td><td class="action-cell">'+r.actions+'</td></tr>';
   }).join('');
 }
 
