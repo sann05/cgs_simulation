@@ -239,7 +239,7 @@ function runSimulation() {
   let reserve = debt * reservePct;
   const initialReserve = reserve;
 
-  const drops = [0, -7, -15, -30, -50, -70];
+  const drops = [0, -7, -15, -30, -40, -50, -60, -70];
   const results = [];
   let logHTML = '';
 
@@ -336,28 +336,32 @@ function runSimulation() {
         actions.push('GM: продать 30%');
         logHTML += '<div class="log-step">2. GM: продаём 30% = ' + fmtUSD(sellGM) + '</div>';
         logHTML += '<div class="log-calc">• BTC: ' + fmt(gmBtcAdded,6) + ' | USDC→GM: ' + fmtUSD(gmUsdcToReinvest) + '</div>';
-      } else {
+      } else if (drop === -15 || drop === -30 || drop === -50 || drop === -70) {
         const sellGM = gmBefore;
         gmBtcAdded = (sellGM / 2) / btcPrice;
         gmUsdcToReinvest = sellGM / 2;
-        
+
         let stabilityToGM = 0;
         if (drop === -30) stabilityToGM = initialStability * 0.3;
         else if (drop === -50) stabilityToGM = initialStability * 0.4;
         else if (drop === -70) stabilityToGM = initialStability * 0.3;
-        
+
         gmValue = gmUsdcToReinvest + stabilityToGM;
         if (stabilityToGM > 0) stabilityZone -= stabilityToGM;
-        
+
         actions.push('GM: продать всё');
         if (stabilityToGM > 0) actions.push('Stability ' + (stabilityToGM/initialStability*100) + '% → GM');
-        
+
         logHTML += '<div class="log-step">2. GM: продаём всё = ' + fmtUSD(sellGM) + '</div>';
         logHTML += '<div class="log-calc">• BTC: ' + fmt(gmBtcAdded,6) + ' | USDC: ' + fmtUSD(gmUsdcToReinvest) + '</div>';
         if (stabilityToGM > 0) {
           logHTML += '<div class="log-step">3. Stability → GM: ' + fmtUSD(stabilityToGM) + '</div>';
         }
         logHTML += '<div class="log-calc">• GM после: <span class="log-result">' + fmtUSD(gmValue) + '</span></div>';
+      } else {
+        // -40% и -60%: никаких действий, просто сохраняем текущую стоимость GM
+        gmValue = gmBefore;
+        logHTML += '<div class="log-step">2. GM: без действий, стоимость = <span class="log-result">' + fmtUSD(gmValue) + '</span></div>';
       }
       btcAdded += gmBtcAdded;
       prevGmValue = gmValue;
