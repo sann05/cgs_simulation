@@ -135,7 +135,7 @@ tr:hover{background:#2a2a6a}
 <div class="table-wrap">
 <table id="resultsTable">
 <thead><tr>
-<th>Drop</th><th>BTC Price</th><th>Collateral BTC</th><th>Collateral $</th><th>Debt</th><th>HF</th><th>LTV</th>
+<th>Drop</th><th>BTC Price</th><th>Collateral BTC</th><th>Collateral $</th><th>Debt</th><th>HF до</th><th>HF после</th><th>LTV</th>
 <th>GM $</th><th>CLMM $</th><th>Reserve $</th><th>Stability $</th><th>S/G до</th><th>S/G после</th><th>Y/L до</th><th>Y/L после</th><th>BTC добавлено</th><th>Действия</th>
 </tr></thead>
 <tbody></tbody>
@@ -156,7 +156,7 @@ tr:hover{background:#2a2a6a}
 </div>
 
 <div class="summary" id="summary"></div>
-<div class="version">v4.8</div>
+<div class="version">v4.9</div>
 </div>
 
 <script>
@@ -282,6 +282,7 @@ function runSimulation() {
   drops.forEach((drop, i) => {
     const btcPrice = btcStart * (1 + drop / 100);
     let btcAdded = 0;
+    let hfBefore = 0;
     let actions = [];
 
     logHTML += '<div class="log-level"><h4>📍 Уровень ' + drop + '% | BTC = ' + fmtUSD(btcPrice) + '</h4>';
@@ -423,6 +424,10 @@ function runSimulation() {
         logHTML += '<div class="log-step log-clmm">CLMM #' + clmmGeneration + ' активна: ' + fmtUSD(clmmValue) + '</div>';
       }
 
+      // HF ДО добавления BTC в залог
+      const collateralValBeforeHF = collateralBTC * btcPrice;
+      hfBefore = (collateralValBeforeHF * liqThresh) / debt;
+
       collateralBTC += btcAdded;
       logHTML += '<div class="log-step">Collateral: +' + fmt(btcAdded,6) + ' BTC → Итого: <span class="log-result">' + fmt(collateralBTC,4) + ' BTC</span></div>';
     }
@@ -430,18 +435,31 @@ function runSimulation() {
     const collateralVal = collateralBTC * btcPrice;
     const hf = (collateralVal * liqThresh) / debt;
     const ltv = (debt / collateralVal) * 100;
-    
+
+    // hfBefore для начального состояния = hf (нет действий)
+    const hfBeforeFinal = (i === 0) ? hf : hfBefore;
+
     // Stability/Growth Ratio = Все стейблкоины / Collateral $
     const totalStables = stabilityZone + reserve;
     const sgRatio = collateralVal > 0 ? totalStables / collateralVal : 0;
-    
+
     // Yield/Loan Ratio = Yield Zone total / Debt
     const yieldTotal = gmValue + clmmValue + reserve;
     const ylRatio = debt > 0 ? yieldTotal / debt : 0;
-    
+
     const hfClass = hf>1.5 ? 'positive' : hf>1.2 ? 'warning' : 'danger';
+    const hfBeforeClass = hfBeforeFinal>1.5 ? 'positive' : hfBeforeFinal>1.2 ? 'warning' : 'danger';
     const ltvClass = ltv>75 ? 'danger' : ltv>65 ? 'warning' : '';
-    logHTML += '<div class="log-step" style="margin-top:10px;padding-top:10px;border-top:1px solid #333">Метрики: HF = <span class="' + hfClass + '">' + fmt(hf,2) + '</span> | LTV = <span class="' + ltvClass + '">' + fmt(ltv,1) + '%</span></div>';
+
+    // Лог с HF до/после
+    if (i > 0) {
+      const hfDelta = hf - hfBeforeFinal;
+      const hfDeltaStr = hfDelta >= 0 ? '+' + fmt(hfDelta,2) : fmt(hfDelta,2);
+      const hfDeltaColor = hfDelta >= 0 ? '#00ff88' : '#ff4444';
+      logHTML += '<div class="log-step" style="margin-top:10px;padding-top:10px;border-top:1px solid #333">Метрики: HF до = <span class="' + hfBeforeClass + '">' + fmt(hfBeforeFinal,2) + '</span> → HF после = <span class="' + hfClass + '">' + fmt(hf,2) + '</span> (<span style="color:' + hfDeltaColor + '">' + hfDeltaStr + '</span>) | LTV = <span class="' + ltvClass + '">' + fmt(ltv,1) + '%</span></div>';
+    } else {
+      logHTML += '<div class="log-step" style="margin-top:10px;padding-top:10px;border-top:1px solid #333">Метрики: HF = <span class="' + hfClass + '">' + fmt(hf,2) + '</span> | LTV = <span class="' + ltvClass + '">' + fmt(ltv,1) + '%</span></div>';
+    }
 
     // Показываем ratios ПОСЛЕ действий с дельтой
     if (i > 0) {
@@ -458,7 +476,7 @@ function runSimulation() {
     logHTML += '</div>';
 
     results.push({
-      drop, btcPrice, collateralBTC, collateralVal, debt, hf, ltv,
+      drop, btcPrice, collateralBTC, collateralVal, debt, hfBefore: hfBeforeFinal, hf, ltv,
       gmValue, clmmValue, reserve, stabilityZone,
       sgRatioBefore, sgRatio, ylRatioBefore, ylRatio, btcAdded,
       actions: actions.join('; ') || '-'
@@ -476,8 +494,14 @@ function runSimulation() {
 function renderTable(data) {
   const tbody = document.querySelector('#resultsTable tbody');
   tbody.innerHTML = data.map(r => {
+    const hfBeforeC = r.hfBefore>1.5?'positive':r.hfBefore>1.2?'warning':'danger';
     const hfC = r.hf>1.5?'positive':r.hf>1.2?'warning':'danger';
     const ltvC = r.ltv>75?'danger':r.ltv>65?'warning':'';
+
+    // HF дельта
+    const hfDelta = r.hf - r.hfBefore;
+    const hfDeltaClass = hfDelta > 0 ? 'positive' : hfDelta < 0 ? 'danger' : '';
+    const hfDeltaStr = r.drop !== 0 ? ' <span class="'+hfDeltaClass+'" style="font-size:0.8em">('+(hfDelta>=0?'+':'')+fmt(hfDelta,2)+')</span>' : '';
 
     // S/G Ratio до/после с дельтой
     const sgBefore = r.sgRatioBefore > 0 ? fmt(r.sgRatioBefore,2) : '-';
@@ -493,7 +517,7 @@ function renderTable(data) {
     const ylDeltaClass = ylDelta > 0 ? 'positive' : ylDelta < 0 ? 'danger' : '';
     const ylDeltaStr = r.ylRatioBefore > 0 ? ' <span class="'+ylDeltaClass+'" style="font-size:0.8em">('+(ylDelta>=0?'+':'')+fmt(ylDelta,2)+')</span>' : '';
 
-    return '<tr><td><b>'+r.drop+'%</b></td><td>'+fmtUSD(r.btcPrice)+'</td><td><b>'+fmt(r.collateralBTC,4)+'</b></td><td>'+fmtUSD(r.collateralVal)+'</td><td>'+fmtUSD(r.debt)+'</td><td class="'+hfC+'"><b>'+fmt(r.hf,2)+'</b></td><td class="'+ltvC+'">'+fmt(r.ltv,1)+'%</td><td>'+fmtUSD(r.gmValue)+'</td><td>'+fmtUSD(r.clmmValue)+'</td><td>'+fmtUSD(r.reserve)+'</td><td>'+fmtUSD(r.stabilityZone)+'</td><td>'+sgBefore+'</td><td><b>'+sgAfter+'</b>'+sgDeltaStr+'</td><td>'+ylBefore+'</td><td><b>'+ylAfter+'</b>'+ylDeltaStr+'</td><td>'+(r.btcAdded>0?fmt(r.btcAdded,4):'-')+'</td><td class="action-cell">'+r.actions+'</td></tr>';
+    return '<tr><td><b>'+r.drop+'%</b></td><td>'+fmtUSD(r.btcPrice)+'</td><td><b>'+fmt(r.collateralBTC,4)+'</b></td><td>'+fmtUSD(r.collateralVal)+'</td><td>'+fmtUSD(r.debt)+'</td><td class="'+hfBeforeC+'">'+fmt(r.hfBefore,2)+'</td><td class="'+hfC+'"><b>'+fmt(r.hf,2)+'</b>'+hfDeltaStr+'</td><td class="'+ltvC+'">'+fmt(r.ltv,1)+'%</td><td>'+fmtUSD(r.gmValue)+'</td><td>'+fmtUSD(r.clmmValue)+'</td><td>'+fmtUSD(r.reserve)+'</td><td>'+fmtUSD(r.stabilityZone)+'</td><td>'+sgBefore+'</td><td><b>'+sgAfter+'</b>'+sgDeltaStr+'</td><td>'+ylBefore+'</td><td><b>'+ylAfter+'</b>'+ylDeltaStr+'</td><td>'+(r.btcAdded>0?fmt(r.btcAdded,4):'-')+'</td><td class="action-cell">'+r.actions+'</td></tr>';
   }).join('');
 }
 

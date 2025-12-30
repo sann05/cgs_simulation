@@ -246,10 +246,16 @@ $$Y/L = \frac{GM + CLMM + Reserve}{Debt}$$
 
 | Версия | Описание | Ссылка |
 |--------|----------|--------|
-| **Базовая** (v4.7) | Чистая таблица для пользователей | [index.html](https://cgs-simulation.vercel.app) |
-| **Расширенная** (v4.8) | + S/G и Y/L Ratio до/после действий | [index_extended.html](https://cgs-simulation.vercel.app/index_extended.html) |
+| **Базовая** (v4.8) | HF до/после, без S/G и Y/L | [index.html](https://cgs-simulation.vercel.app) |
+| **Расширенная** (v4.9) | + S/G и Y/L Ratio до/после действий | [index_extended.html](https://cgs-simulation.vercel.app/index_extended.html) |
 
 - Пароль: `web3academy_cgs_2025`
+
+### Обе версии
+
+В обеих версиях отображаются:
+- **HF до** — Health Factor до активных действий (ребалансировки)
+- **HF после** — Health Factor после добавления BTC в залог (с дельтой)
 
 ### Расширенная версия
 
@@ -263,5 +269,5 @@ $$Y/L = \frac{GM + CLMM + Reserve}{Debt}$$
 
 ---
 
-*Версия документации: 1.1*
+*Версия документации: 1.2*
 *Дата: Декабрь 2025*

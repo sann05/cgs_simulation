@@ -25,16 +25,17 @@ cgs-simulation/
 
 | Файл | Версия | Колонки | S/G и Y/L Ratio |
 |------|--------|---------|-----------------|
-| `index.html` | v4.7 | 13 | Нет |
-| `index_extended.html` | v4.8 | 17 | Да (до/после действий) |
+| `index.html` | v4.8 | 14 | Нет |
+| `index_extended.html` | v4.9 | 18 | Да (до/после действий) |
 
 #### index.html (базовая)
-- Чистая таблица без дополнительных метрик
+- Чистая таблица без дополнительных метрик S/G и Y/L
 - Для конечных пользователей
-- Колонки: Drop, BTC Price, Collateral BTC/$, Debt, HF, LTV, GM/CLMM/Reserve/Stability $, BTC добавлено, Действия
+- Колонки: Drop, BTC Price, Collateral BTC/$, Debt, HF до, HF после, LTV, GM/CLMM/Reserve/Stability $, BTC добавлено, Действия
 
 #### index_extended.html (расширенная)
 - Добавлены колонки: S/G до, S/G после, Y/L до, Y/L после
+- Обе версии имеют HF до/после для анализа влияния действий на Health Factor
 - Лог показывает ratios до и после действий с дельтами
 - Для исследований и анализа эффекта ребалансировки
 
@@ -226,8 +227,8 @@ vercel --prod
 
 | Версия | Файл | Описание |
 |--------|------|----------|
-| v4.7 | index.html | Базовая версия без S/G и Y/L |
-| v4.8 | index_extended.html | Расширенная с ratios до/после |
+| v4.8 | index.html | Базовая версия с HF до/после, без S/G и Y/L |
+| v4.9 | index_extended.html | Расширенная с HF и ratios до/после |
 
 При обновлении:
 1. Инкрементировать версию в `<div class="version">vX.X</div>`
