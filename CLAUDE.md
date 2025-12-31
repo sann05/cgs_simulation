@@ -92,10 +92,17 @@ const ltv = (debt / collateralValue) * 100;
 
 ### Метрики портфеля (только в extended версии)
 ```javascript
-// S/G Ratio (Stability/Growth) — отношение стейблов к залогу
-const sgRatio = collateralVal > 0 ? (stabilityZone + reserve) / collateralVal : 0;
+// S/G Ratio (Stability/Growth) — отображается как дробь X/Y где X+Y=100
+// Формула: S% = Stability / (Stability + Collateral) * 100, G% = 100 - S%
+// Пример: при Stability $40k и Collateral $60k → "40/60"
+const fmtSG = (stability, collateral) => {
+  const total = stability + collateral;
+  if (total <= 0) return '-';
+  const sPct = Math.round(stability / total * 100);
+  return sPct + '/' + (100 - sPct);
+};
 
-// Y/L Ratio (Yield/Loan) — отношение Yield Zone к долгу
+// Y/L Ratio (Yield/Loan) — отношение Yield Zone к долгу (десятичная дробь)
 const ylRatio = debt > 0 ? (gmValue + clmmValue + reserve) / debt : 0;
 
 // "До" — с новой ценой, но до ребалансировки (GM пересчитан, но не продан)
@@ -129,12 +136,20 @@ const ylRatio = debt > 0 ? (gmValue + clmmValue + reserve) / debt : 0;
 
 ## Правила разработки
 
+### ⚠️ ВАЖНО: Обновление документации
+**После КАЖДОГО изменения в коде обязательно обнови CLAUDE.md и README.md** со всеми релевантными изменениями:
+- Новые формулы и расчёты
+- Изменения в логике триггеров
+- Новые поля в таблице
+- Изменения в отображении данных
+
 ### При изменении расчётов
 1. Сначала проверь формулу вручную на бумаге
 2. Добавь console.log для промежуточных значений
 3. Сравни с ожидаемыми результатами из документации
 4. Убедись что все edge cases обработаны (деление на 0, Infinity)
 5. **Обнови ОБА файла** если меняешь общую логику
+6. **Обнови документацию** (CLAUDE.md, README.md)
 
 ### При добавлении новых полей в таблицу
 1. Добавь `<th>` в header таблицы
