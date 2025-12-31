@@ -17,6 +17,14 @@ body{font-family:'Segoe UI',sans-serif;background:linear-gradient(135deg,#0f0f23
 .content-hidden{display:none}
 .disclaimer{background:linear-gradient(135deg,#2a1a3a,#1a2a4a);border:2px solid #f7931a;padding:20px;border-radius:12px;margin:20px 0;text-align:center;font-size:1.05em;line-height:1.6}
 .disclaimer b{color:#f7931a}
+.guide-box{background:linear-gradient(135deg,#1a2a3a,#1a3a2a);border:2px solid #00d4aa;padding:20px;border-radius:12px;margin:20px 0;font-size:0.9em;line-height:1.6}
+.guide-box h3{color:#00d4aa;margin:0 0 12px 0;font-size:1.1em}
+.guide-box table{width:100%;border-collapse:collapse;margin:10px 0}
+.guide-box th,.guide-box td{padding:8px 10px;text-align:left;border-bottom:1px solid #333}
+.guide-box th{color:#f7931a;font-weight:600}
+.guide-box .formula{background:#0a0a1a;padding:8px 12px;border-radius:6px;font-family:monospace;margin:8px 0}
+.guide-box b{color:#f7931a}
+.guide-box .highlight{color:#00ff88}
 .container{max-width:1600px;margin:0 auto}
 h1{text-align:center;color:#f7931a;margin-bottom:8px;font-size:1.6em}
 h2{color:#00d4aa;margin:20px 0 12px;font-size:1.2em;border-bottom:2px solid #00d4aa;padding-bottom:6px}
@@ -87,6 +95,35 @@ tr:hover{background:#2a2a6a}
 <div class="disclaimer">
 ⚡ Симуляция показывает <b>только защитную механику</b> при падении рынка.<br>
 Без учёта доходности DeFi-позиций и регулярных DCA-инвестиций.
+</div>
+
+<div class="guide-box">
+<h3>📌 Памятка: Куда направлять доходы</h3>
+
+<b>DeFi доходы:</b>
+<table>
+<tr><th>Источник</th><th>Направление</th></tr>
+<tr><td>Комиссии от CLMM</td><td>→ Growth Zone (залог)</td></tr>
+<tr><td>APY за Stability стейблкоины</td><td>→ Growth Zone (залог)</td></tr>
+<tr><td>APY за Reserve стейблкоины</td><td>→ Growth Zone (залог)</td></tr>
+</table>
+
+<b>DCA (ежемесячные инвестиции):</b>
+<div class="formula">
+Отклонение S/G = |текущий − целевой| / целевой<br>
+Отклонение Y/L = |текущий − 1.0| / 1.0
+</div>
+
+<table>
+<tr><th>Условие</th><th>DCA направить в</th></tr>
+<tr><td>HF ниже 1.5</td><td class="highlight"><b>Stability Zone</b> (безопасность приоритет)</td></tr>
+<tr><td>HF ≥ 1.5, отклонение Y/L &gt; отклонение S/G</td><td class="highlight"><b>Yield Zone</b></td></tr>
+<tr><td>HF ≥ 1.5, отклонение S/G &gt; отклонение Y/L</td><td class="highlight"><b>Stability Zone</b></td></tr>
+</table>
+
+<div style="margin-top:10px;color:#888;font-size:0.85em">
+<b>Принцип:</b> DCA идёт в зону с большим отклонением от цели для восстановления баланса.
+</div>
 </div>
 
 <h2>⚙️ Параметры</h2>
