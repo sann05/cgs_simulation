@@ -180,6 +180,14 @@ if (sessionStorage.getItem('cgs_auth') === 'true') {
 let charts = {};
 const fmt = (n,d=2) => n.toLocaleString(undefined,{minimumFractionDigits:d,maximumFractionDigits:d});
 const fmtUSD = n => '$'+n.toLocaleString(undefined,{maximumFractionDigits:0});
+// S/G как дробь X/Y где X+Y=100: S% = Stability/(Stability+Collateral)*100
+const fmtSG = (stability, collateral) => {
+  const total = stability + collateral;
+  if (total <= 0) return '-';
+  const sPct = Math.round(stability / total * 100);
+  const gPct = 100 - sPct;
+  return sPct + '/' + gPct;
+};
 
 document.getElementById('growthSlider').addEventListener('input', function(e) {
   document.getElementById('growthVal').textContent = (100 - e.target.value) + '%';
@@ -288,7 +296,8 @@ function runSimulation() {
     logHTML += '<div class="log-level"><h4>📍 Уровень ' + drop + '% | BTC = ' + fmtUSD(btcPrice) + '</h4>';
 
     // Сохраняем значения ДО действий для расчёта ratios
-    let sgRatioBefore = 0;
+    let stabilityBefore = 0;
+    let collateralValBeforeSG = 0;
     let ylRatioBefore = 0;
 
     if (i === 0) {
@@ -314,12 +323,14 @@ function runSimulation() {
         clmmValueBefore = calcCLMMValue(clmmValue, clmmEntryPrice, btcPrice, clmmLowerPre, clmmUpperPre);
       }
 
-      const totalStablesBefore = stabilityZone + reserve;
+      // S/G без Reserve (только Stability / Collateral)
+      stabilityBefore = stabilityZone;
+      collateralValBeforeSG = collateralValBefore;
+
       const yieldTotalBefore = gmValueBefore + clmmValueBefore + reserve;
-      sgRatioBefore = collateralValBefore > 0 ? totalStablesBefore / collateralValBefore : 0;
       ylRatioBefore = debt > 0 ? yieldTotalBefore / debt : 0;
 
-      logHTML += '<div class="log-step" style="color:#888;font-size:0.9em">📊 Ratios ДО действий: S/G = ' + fmt(sgRatioBefore,3) + ' | Y/L = ' + fmt(ylRatioBefore,3) + '</div>';
+      logHTML += '<div class="log-step" style="color:#888;font-size:0.9em">📊 Ratios ДО действий: S/G = ' + fmtSG(stabilityBefore, collateralValBeforeSG) + ' | Y/L = ' + fmt(ylRatioBefore,3) + '</div>';
       // === GM LOGIC ===
       const gmRatio = Math.sqrt(btcPrice / prevBtcPrice);
       let gmBefore = prevGmValue * gmRatio;
@@ -443,9 +454,8 @@ function runSimulation() {
     // hfBefore для начального состояния = hf (нет действий)
     const hfBeforeFinal = (i === 0) ? hf : hfBefore;
 
-    // Stability/Growth Ratio = Все стейблкоины / Collateral $
-    const totalStables = stabilityZone + reserve;
-    const sgRatio = collateralVal > 0 ? totalStables / collateralVal : 0;
+    // Stability/Growth Ratio = Stability Zone / Collateral $ (без Reserve)
+    // Отображается как дробь X/Y где X+Y=100
 
     // Yield/Loan Ratio = Yield Zone total / Debt
     const yieldTotal = gmValue + clmmValue + reserve;
@@ -465,24 +475,23 @@ function runSimulation() {
       logHTML += '<div class="log-step" style="margin-top:10px;padding-top:10px;border-top:1px solid #333">Метрики: HF = <span class="' + hfClass + '">' + fmt(hf,2) + '</span> | LTV = <span class="' + ltvClass + '">' + fmt(ltv,1) + '%</span></div>';
     }
 
-    // Показываем ratios ПОСЛЕ действий с дельтой
+    // Показываем ratios ПОСЛЕ действий
+    const sgBefore = fmtSG(stabilityBefore, collateralValBeforeSG);
+    const sgAfter = fmtSG(stabilityZone, collateralVal);
     if (i > 0) {
-      const sgDelta = sgRatio - sgRatioBefore;
       const ylDelta = ylRatio - ylRatioBefore;
-      const sgDeltaStr = sgDelta >= 0 ? '+' + fmt(sgDelta,3) : fmt(sgDelta,3);
       const ylDeltaStr = ylDelta >= 0 ? '+' + fmt(ylDelta,3) : fmt(ylDelta,3);
-      const sgColor = sgDelta >= 0 ? '#00ff88' : '#ff4444';
       const ylColor = ylDelta >= 0 ? '#00ff88' : '#ff4444';
-      logHTML += '<div class="log-step" style="color:#00d4aa">📊 Ratios ПОСЛЕ действий: S/G = ' + fmt(sgRatio,3) + ' (<span style="color:' + sgColor + '">' + sgDeltaStr + '</span>) | Y/L = ' + fmt(ylRatio,3) + ' (<span style="color:' + ylColor + '">' + ylDeltaStr + '</span>)</div>';
+      logHTML += '<div class="log-step" style="color:#00d4aa">📊 Ratios ПОСЛЕ действий: S/G = ' + sgBefore + ' → ' + sgAfter + ' | Y/L = ' + fmt(ylRatio,3) + ' (<span style="color:' + ylColor + '">' + ylDeltaStr + '</span>)</div>';
     } else {
-      logHTML += '<div class="log-step" style="color:#00d4aa">📊 Начальные Ratios: S/G = ' + fmt(sgRatio,3) + ' | Y/L = ' + fmt(ylRatio,3) + '</div>';
+      logHTML += '<div class="log-step" style="color:#00d4aa">📊 Начальные Ratios: S/G = ' + sgAfter + ' | Y/L = ' + fmt(ylRatio,3) + '</div>';
     }
     logHTML += '</div>';
 
     results.push({
       drop, btcPrice, collateralBTC, collateralVal, debt, hfBefore: hfBeforeFinal, hf, ltv,
       gmValue, clmmValue, reserve, stabilityZone,
-      sgRatioBefore, sgRatio, ylRatioBefore, ylRatio, btcAdded,
+      stabilityBefore, collateralValBeforeSG, ylRatioBefore, ylRatio, btcAdded,
       actions: actions.join('; ') || '-'
     });
     
@@ -507,12 +516,9 @@ function renderTable(data) {
     const hfDeltaClass = hfDelta > 0 ? 'positive' : hfDelta < 0 ? 'danger' : '';
     const hfDeltaStr = r.drop !== 0 ? ' <span class="'+hfDeltaClass+'" style="font-size:0.8em">('+(hfDelta>=0?'+':'')+fmt(hfDelta,2)+')</span>' : '';
 
-    // S/G Ratio до/после с дельтой
-    const sgBefore = r.sgRatioBefore > 0 ? fmt(r.sgRatioBefore,2) : '-';
-    const sgAfter = fmt(r.sgRatio,2);
-    const sgDelta = r.sgRatioBefore > 0 ? r.sgRatio - r.sgRatioBefore : 0;
-    const sgDeltaClass = sgDelta > 0 ? 'positive' : sgDelta < 0 ? 'danger' : '';
-    const sgDeltaStr = r.sgRatioBefore > 0 ? ' <span class="'+sgDeltaClass+'" style="font-size:0.8em">('+(sgDelta>=0?'+':'')+fmt(sgDelta,2)+')</span>' : '';
+    // S/G Ratio до/после как дробь X/Y
+    const sgBeforeStr = r.drop !== 0 ? fmtSG(r.stabilityBefore, r.collateralValBeforeSG) : '-';
+    const sgAfterStr = fmtSG(r.stabilityZone, r.collateralVal);
 
     // Y/L Ratio до/после с дельтой
     const ylBefore = r.ylRatioBefore > 0 ? fmt(r.ylRatioBefore,2) : '-';
@@ -521,7 +527,7 @@ function renderTable(data) {
     const ylDeltaClass = ylDelta > 0 ? 'positive' : ylDelta < 0 ? 'danger' : '';
     const ylDeltaStr = r.ylRatioBefore > 0 ? ' <span class="'+ylDeltaClass+'" style="font-size:0.8em">('+(ylDelta>=0?'+':'')+fmt(ylDelta,2)+')</span>' : '';
 
-    return '<tr><td><b>'+r.drop+'%</b></td><td>'+fmtUSD(r.btcPrice)+'</td><td><b>'+fmt(r.collateralBTC,4)+'</b></td><td>'+fmtUSD(r.collateralVal)+'</td><td>'+fmtUSD(r.debt)+'</td><td class="'+hfBeforeC+'">'+fmt(r.hfBefore,2)+'</td><td class="'+hfC+'"><b>'+fmt(r.hf,2)+'</b>'+hfDeltaStr+'</td><td class="'+ltvC+'">'+fmt(r.ltv,1)+'%</td><td>'+fmtUSD(r.gmValue)+'</td><td>'+fmtUSD(r.clmmValue)+'</td><td>'+fmtUSD(r.reserve)+'</td><td>'+fmtUSD(r.stabilityZone)+'</td><td>'+sgBefore+'</td><td><b>'+sgAfter+'</b>'+sgDeltaStr+'</td><td>'+ylBefore+'</td><td><b>'+ylAfter+'</b>'+ylDeltaStr+'</td><td>'+(r.btcAdded>0?fmt(r.btcAdded,4):'-')+'</td><td class="action-cell">'+r.actions+'</td></tr>';
+    return '<tr><td><b>'+r.drop+'%</b></td><td>'+fmtUSD(r.btcPrice)+'</td><td><b>'+fmt(r.collateralBTC,4)+'</b></td><td>'+fmtUSD(r.collateralVal)+'</td><td>'+fmtUSD(r.debt)+'</td><td class="'+hfBeforeC+'">'+fmt(r.hfBefore,2)+'</td><td class="'+hfC+'"><b>'+fmt(r.hf,2)+'</b>'+hfDeltaStr+'</td><td class="'+ltvC+'">'+fmt(r.ltv,1)+'%</td><td>'+fmtUSD(r.gmValue)+'</td><td>'+fmtUSD(r.clmmValue)+'</td><td>'+fmtUSD(r.reserve)+'</td><td>'+fmtUSD(r.stabilityZone)+'</td><td>'+sgBeforeStr+'</td><td><b>'+sgAfterStr+'</b></td><td>'+ylBefore+'</td><td><b>'+ylAfter+'</b>'+ylDeltaStr+'</td><td>'+(r.btcAdded>0?fmt(r.btcAdded,4):'-')+'</td><td class="action-cell">'+r.actions+'</td></tr>';
   }).join('');
 }
 
