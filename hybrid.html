@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<title>Hybrid Model — Market Drop Simulation</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<link rel="stylesheet" href="shared.css">
+</head>
+<body>
+<div class="password-overlay" id="passwordOverlay">
+<div class="password-box">
+<h2>🔒 Hybrid Model Simulation</h2>
+<input type="password" id="passwordInput" placeholder="Введите пароль">
+<button onclick="checkPassword()">Войти</button>
+<div class="error" id="passwordError">Неверный пароль</div>
+</div>
+</div>
+
+<div class="container content-hidden" id="mainContent">
+<h1>📊 Hybrid Model — Симуляция падения рынка</h1>
+
+<div class="disclaimer">
+⚠️ Это только <b>симуляция</b>. Реальные результаты могут отличаться.<br>
+Не учитываются комиссии, slippage, время исполнения и рыночные условия.
+</div>
+
+<h2>⚙️ Параметры</h2>
+<div class="params-table">
+<table class="input-table">
+<tr>
+<td><label>Общий портфель ($)</label><input type="number" id="totalPortfolio" value="100000"></td>
+<td><label>Цена BTC ($)</label><input type="number" id="btcPrice" value="100000"></td>
+</tr>
+<tr>
+<td><label>Initial LTV (%)</label><input type="number" id="initLTV" value="30"></td>
+<td><label>Liq Threshold (%)</label><input type="number" id="liqThreshold" value="85"></td>
+</tr>
+<tr>
+<td><label>CLMM APR (%)</label><input type="number" id="clmmAPR" value="25"></td>
+<td><label>Stability APR (%)</label><input type="number" id="stabilityAPR" value="10"></td>
+</tr>
+</table>
+
+<div class="slider-group">
+<div class="slider-header">
+<span>Growth Zone: <b id="growthVal">50%</b></span>
+<span>Stability Zone: <b id="stabilityVal">50%</b></span>
+</div>
+<input type="range" id="growthSlider" min="0" max="100" value="50">
+<div class="slider-labels"><span>0% Growth</span><span>50/50</span><span>100% Growth</span></div>
+</div>
+
+<div class="info-box" style="margin-top:15px">
+<h4>📋 Распределение (½ Stability → Yield)</h4>
+<div class="distribution">
+<div class="zone growth">
+<div class="name">Growth Zone</div>
+<div class="value" id="distGrowth">50%</div>
+<div class="pct">BTC в залоге</div>
+</div>
+<div class="zone yield">
+<div class="name">Yield Zone</div>
+<div class="value" id="distYield">25% + Debt</div>
+<div class="pct">½ Stability + Займ → CLMM</div>
+</div>
+<div class="zone stability">
+<div class="name">Stability Zone</div>
+<div class="value" id="distStability">25%</div>
+<div class="pct">Стейблкоины</div>
+</div>
+</div>
+<p style="font-size:0.85em;color:#888;margin-top:10px">
+CLMM ренж: <b style="color:#9966ff">+10% / -25%</b> от цены входа
+</p>
+</div>
+</div>
+
+<button id="runBtn">🚀 Запустить симуляцию</button>
+
+<div class="guide-box">
+<h3>📖 Логика Hybrid модели</h3>
+<table>
+<tr><th>Уровень</th><th>Действие</th></tr>
+<tr><td><b>-25%</b></td><td>CLMM#1 полностью в BTC → залог. Занять до 30% LTV. Взять всю Stability + займ → открыть CLMM#2</td></tr>
+<tr><td><b>-50%</b></td><td>CLMM#2 полностью в BTC → залог. Занять до LTV ~60% (макс). Займ → открыть CLMM#3</td></tr>
+<tr><td><b>-57.8%</b></td><td>CLMM#3 полностью в BTC → залог. STOP (больше не открываем)</td></tr>
+</table>
+<p style="margin-top:10px;font-size:0.85em;color:#888">
+💡 Между действиями рекомендуется ждать <b>48-72 часа</b> для подтверждения тренда
+</p>
+</div>
+
+<h2>📋 Таблица состояний</h2>
+<div class="table-wrap">
+<table id="resultsTable">
+<thead><tr>
+<th>Drop</th><th>BTC Price</th><th>Collateral BTC</th><th>Collateral $</th><th>Debt</th>
+<th>HF до</th><th>HF после</th><th>LTV</th>
+<th>CLMM $</th><th>Stability $</th>
+<th>Доход/мес</th><th>Действия</th>
+</tr></thead>
+<tbody></tbody>
+</table>
+</div>
+
+<h2>💰 Прогноз дохода</h2>
+<div id="incomeSection"></div>
+
+<h2>📝 Детальный лог расчётов</h2>
+<div class="log" id="logContainer"></div>
+
+<h2>📈 Графики</h2>
+<div class="charts">
+<div class="chart-box"><canvas id="hfChart"></canvas></div>
+<div class="chart-box"><canvas id="ltvChart"></canvas></div>
+<div class="chart-box"><canvas id="collateralChart"></canvas></div>
+<div class="chart-box"><canvas id="clmmChart"></canvas></div>
+<div class="chart-box"><canvas id="incomeChart"></canvas></div>
+<div class="chart-box"><canvas id="stabilityChart"></canvas></div>
+</div>
+
+<div class="summary" id="summary"></div>
+<div class="version">Hybrid v1.0</div>
+</div>
+
+<script src="shared.js"></script>
+<script>
+// Callback after successful auth
+function onAuthSuccess() {
+  updateDistributionDisplay();
+  runSimulation();
+}
+
+// Slider event listener
+document.getElementById('growthSlider').addEventListener('input', function(e) {
+  updateDistributionDisplay();
+});
+
+function updateDistributionDisplay() {
+  const sliderVal = +document.getElementById('growthSlider').value;
+  const growthPct = sliderVal;
+  const totalStabilityPct = 100 - sliderVal;
+  const yieldPct = totalStabilityPct / 2;
+  const stabilityPct = totalStabilityPct / 2;
+
+  document.getElementById('growthVal').textContent = growthPct + '%';
+  document.getElementById('stabilityVal').textContent = totalStabilityPct + '%';
+  document.getElementById('distGrowth').textContent = growthPct + '%';
+  document.getElementById('distYield').textContent = yieldPct + '% + Debt';
+  document.getElementById('distStability').textContent = stabilityPct + '%';
+}
+
+document.getElementById('runBtn').addEventListener('click', runSimulation);
+
+function runSimulation() {
+  const total = getInputValue('totalPortfolio', 100000);
+  const btcStart = getInputValue('btcPrice', 100000);
+  const initLTV = getInputValue('initLTV', 30) / 100;
+  const liqThresh = getInputValue('liqThreshold', 85) / 100;
+  const clmmAPR = getInputValue('clmmAPR', 25) / 100;
+  const stabilityAPR = getInputValue('stabilityAPR', 10) / 100;
+
+  // Distribution from slider: Growth%, ½ of rest → Yield, ½ of rest → Stability
+  const sliderVal = +document.getElementById('growthSlider').value;
+  const growthPct = sliderVal / 100;
+  const totalStabilityPct = (100 - sliderVal) / 100;
+  const yieldPct = totalStabilityPct / 2;  // Half of "Stability" goes to Yield
+  const stabilityPct = totalStabilityPct / 2;  // Remaining half stays as Stability
+
+  // CLMM range: +10% / -25%
+  const clmmUpperPct = 1.10;
+  const clmmLowerPct = 0.75;
+
+  // Initial state
+  const growthZone = total * growthPct;
+  let stabilityZone = total * stabilityPct;
+  const initialStability = stabilityZone;
+
+  let collateralBTC = growthZone / btcStart;
+  let debt = growthZone * initLTV;
+
+  // Yield Zone = 25% + Debt (займ направляется в CLMM)
+  let clmmValue = total * yieldPct + debt;
+  let clmmEntryPrice = btcStart;
+  let clmmGeneration = 1;
+  let clmmActive = true;
+
+  // Generate drops: 0%, -5%, -10%, ..., -60%
+  const drops = [];
+  for (let d = 0; d >= -60; d -= 5) {
+    drops.push(d);
+  }
+
+  const results = [];
+  let logHTML = '';
+
+  drops.forEach((drop, i) => {
+    const btcPrice = btcStart * (1 + drop / 100);
+    let btcAdded = 0;
+    let hfBefore = 0;
+    let actions = [];
+    let newLoan = 0;
+
+    logHTML += '<div class="log-level"><h4>📍 Уровень ' + drop + '% | BTC = ' + fmtUSD(btcPrice) + '</h4>';
+
+    if (i === 0) {
+      // Initial state
+      actions.push('Начальное состояние');
+      logHTML += '<div class="log-step">Начальное состояние:</div>';
+      logHTML += '<div class="log-calc">• Growth Zone (' + fmt(growthPct * 100, 0) + '%): ' + fmtUSD(growthZone) + ' = ' + fmt(collateralBTC, 4) + ' BTC</div>';
+      logHTML += '<div class="log-calc">• Займ (LTV ' + fmt(initLTV * 100, 0) + '%): ' + fmtUSD(debt) + ' → CLMM</div>';
+      logHTML += '<div class="log-calc log-clmm">• CLMM #1 (' + fmt(yieldPct * 100, 0) + '% + Debt): ' + fmtUSD(total * yieldPct) + ' + ' + fmtUSD(debt) + ' = ' + fmtUSD(clmmValue) + '</div>';
+      logHTML += '<div class="log-calc">• CLMM ренж: ' + fmtUSD(btcStart * clmmLowerPct) + ' - ' + fmtUSD(btcStart * clmmUpperPct) + '</div>';
+      logHTML += '<div class="log-calc">• Stability Zone (' + fmt(stabilityPct * 100, 0) + '%): ' + fmtUSD(stabilityZone) + '</div>';
+    } else {
+      // Calculate CLMM boundaries
+      const clmmLower = clmmEntryPrice * clmmLowerPct;
+      const clmmUpper = clmmEntryPrice * clmmUpperPct;
+
+      // HF BEFORE any actions
+      const collateralValBefore = collateralBTC * btcPrice;
+      hfBefore = calcHealthFactor(collateralValBefore, debt, liqThresh);
+
+      // Check if CLMM exits range (price drops below lower bound)
+      if (clmmActive && btcPrice <= clmmLower) {
+        // CLMM fully converted to BTC
+        const clmmBtc = calcCLMMBtc(clmmValue, clmmEntryPrice, clmmLower);
+        btcAdded += clmmBtc;
+
+        logHTML += '<div class="log-step log-clmm">1. CLMM #' + clmmGeneration + ' вышла за ренж (→ BTC):</div>';
+        logHTML += '<div class="log-calc">• Entry: ' + fmtUSD(clmmEntryPrice) + ' → Exit: ' + fmtUSD(clmmLower) + '</div>';
+        logHTML += '<div class="log-calc">• Avg price: ' + fmtUSD(Math.sqrt(clmmEntryPrice * clmmLower)) + '</div>';
+        logHTML += '<div class="log-calc">• BTC получено: <span class="log-result">' + fmt(clmmBtc, 6) + '</span></div>';
+
+        actions.push('CLMM #' + clmmGeneration + ' → BTC');
+
+        // Add BTC to collateral
+        collateralBTC += btcAdded;
+        const newCollateralVal = collateralBTC * btcPrice;
+
+        logHTML += '<div class="log-step">2. Collateral: +' + fmt(btcAdded, 6) + ' BTC → Итого: ' + fmt(collateralBTC, 4) + ' BTC</div>';
+
+        // Determine next action based on generation
+        if (clmmGeneration === 1) {
+          // First cycle: borrow to 30% LTV, take all Stability, open CLMM#2
+          const targetLTV = 0.30;
+          const maxDebt = newCollateralVal * targetLTV;
+          newLoan = maxDebt - debt;
+
+          if (newLoan > 0) {
+            debt = maxDebt;
+            logHTML += '<div class="log-step">3. Новый займ до LTV 30%: +' + fmtUSD(newLoan) + ' → Долг: ' + fmtUSD(debt) + '</div>';
+            actions.push('Займ +' + fmtUSD(newLoan));
+          }
+
+          // Open new CLMM from Stability + new loan
+          const clmmFunding = stabilityZone + newLoan;
+          clmmValue = clmmFunding;
+          clmmEntryPrice = btcPrice;
+          clmmGeneration = 2;
+
+          logHTML += '<div class="log-step log-clmm">4. Открываем CLMM #2:</div>';
+          logHTML += '<div class="log-calc">• Stability: ' + fmtUSD(stabilityZone) + ' + Займ: ' + fmtUSD(newLoan) + ' = ' + fmtUSD(clmmFunding) + '</div>';
+          logHTML += '<div class="log-calc">• Новый ренж: ' + fmtUSD(btcPrice * clmmLowerPct) + ' - ' + fmtUSD(btcPrice * clmmUpperPct) + '</div>';
+
+          stabilityZone = 0;
+          actions.push('Stability → CLMM #2');
+
+        } else if (clmmGeneration === 2) {
+          // Second cycle: borrow to ~60% LTV, open CLMM#3 from loan only
+          const targetLTV = 0.60;
+          const maxDebt = newCollateralVal * targetLTV;
+          newLoan = maxDebt - debt;
+
+          if (newLoan > 0) {
+            debt = maxDebt;
+            logHTML += '<div class="log-step">3. Новый займ до LTV ~60%: +' + fmtUSD(newLoan) + ' → Долг: ' + fmtUSD(debt) + '</div>';
+            actions.push('Займ +' + fmtUSD(newLoan));
+          }
+
+          // Open new CLMM from loan
+          clmmValue = newLoan;
+          clmmEntryPrice = btcPrice;
+          clmmGeneration = 3;
+
+          logHTML += '<div class="log-step log-clmm">4. Открываем CLMM #3:</div>';
+          logHTML += '<div class="log-calc">• Из займа: ' + fmtUSD(newLoan) + '</div>';
+          logHTML += '<div class="log-calc">• Новый ренж: ' + fmtUSD(btcPrice * clmmLowerPct) + ' - ' + fmtUSD(btcPrice * clmmUpperPct) + '</div>';
+
+          actions.push('Займ → CLMM #3');
+
+        } else if (clmmGeneration === 3) {
+          // Third cycle: STOP - no more CLMM
+          clmmValue = 0;
+          clmmActive = false;
+
+          logHTML += '<div class="log-step" style="color:#ff4444">3. STOP — CLMM больше не открываем</div>';
+          actions.push('CLMM STOP');
+        }
+
+        btcAdded = 0; // Already added above
+
+      } else if (clmmActive && clmmValue > 0) {
+        // CLMM still inside range - calculate current value
+        const clmmBefore = clmmValue;
+        clmmValue = calcCLMMValue(clmmBefore, clmmEntryPrice, btcPrice, clmmLower, clmmUpper);
+        const clmmChange = ((clmmValue / clmmBefore) - 1) * 100;
+
+        logHTML += '<div class="log-step log-clmm">CLMM #' + clmmGeneration + ' внутри ренжа:</div>';
+        logHTML += '<div class="log-calc">• Ренж: ' + fmtUSD(clmmLower) + ' - ' + fmtUSD(clmmUpper) + '</div>';
+        logHTML += '<div class="log-calc">• Стоимость: ' + fmtUSD(clmmBefore) + ' → <span class="log-result">' + fmtUSD(clmmValue) + '</span> (' + fmt(clmmChange, 1) + '%)</div>';
+      } else if (!clmmActive) {
+        logHTML += '<div class="log-step" style="color:#888">CLMM неактивна (STOP)</div>';
+      }
+
+      // Add any remaining BTC to collateral
+      if (btcAdded > 0) {
+        collateralBTC += btcAdded;
+        logHTML += '<div class="log-step">Collateral: +' + fmt(btcAdded, 6) + ' BTC → Итого: <span class="log-result">' + fmt(collateralBTC, 4) + ' BTC</span></div>';
+      }
+    }
+
+    // Calculate final metrics
+    const collateralVal = collateralBTC * btcPrice;
+    const hf = calcHealthFactor(collateralVal, debt, liqThresh);
+    const ltv = calcLTV(debt, collateralVal);
+
+    // hfBefore for initial state = hf
+    const hfBeforeFinal = (i === 0) ? hf : hfBefore;
+
+    // Calculate monthly income
+    const monthlyClmm = calcMonthlyIncome(clmmValue, clmmAPR);
+    const monthlyStability = calcMonthlyIncome(stabilityZone, stabilityAPR);
+    const monthlyTotal = monthlyClmm + monthlyStability;
+
+    // Log metrics
+    const hfClass = getHFClass(hf);
+    const hfBeforeClass = getHFClass(hfBeforeFinal);
+    const ltvClass = getLTVClass(ltv);
+
+    if (i > 0) {
+      const hfDelta = hf - hfBeforeFinal;
+      const hfDeltaStr = hfDelta >= 0 ? '+' + fmt(hfDelta, 2) : fmt(hfDelta, 2);
+      const hfDeltaColor = hfDelta >= 0 ? '#00ff88' : '#ff4444';
+      logHTML += '<div class="log-step" style="margin-top:10px;padding-top:10px;border-top:1px solid #333">';
+      logHTML += 'Метрики: HF до = <span class="' + hfBeforeClass + '">' + fmt(hfBeforeFinal, 2) + '</span>';
+      logHTML += ' → HF после = <span class="' + hfClass + '">' + fmt(hf, 2) + '</span>';
+      logHTML += ' (<span style="color:' + hfDeltaColor + '">' + hfDeltaStr + '</span>)';
+      logHTML += ' | LTV = <span class="' + ltvClass + '">' + fmt(ltv, 1) + '%</span>';
+      logHTML += '</div>';
+    } else {
+      logHTML += '<div class="log-step" style="margin-top:10px;padding-top:10px;border-top:1px solid #333">';
+      logHTML += 'Метрики: HF = <span class="' + hfClass + '">' + fmt(hf, 2) + '</span>';
+      logHTML += ' | LTV = <span class="' + ltvClass + '">' + fmt(ltv, 1) + '%</span>';
+      logHTML += '</div>';
+    }
+
+    logHTML += '<div class="log-calc">💰 Доход/мес: CLMM ' + fmtUSD(monthlyClmm) + ' + Stability ' + fmtUSD(monthlyStability) + ' = <span class="log-result">' + fmtUSD(monthlyTotal) + '</span></div>';
+    logHTML += '</div>';
+
+    results.push({
+      drop, btcPrice, collateralBTC, collateralVal, debt,
+      hfBefore: hfBeforeFinal, hf, ltv,
+      clmmValue, stabilityZone, monthlyIncome: monthlyTotal,
+      actions: actions.join('; ') || '-'
+    });
+  });
+
+  renderTable(results);
+  document.getElementById('logContainer').innerHTML = logHTML;
+  renderCharts(results);
+  renderSummary(results);
+  renderIncomeSection(results);
+}
+
+function renderTable(data) {
+  const tbody = document.querySelector('#resultsTable tbody');
+  tbody.innerHTML = data.map(r => {
+    const hfBeforeC = getHFClass(r.hfBefore);
+    const hfC = getHFClass(r.hf);
+    const ltvC = getLTVClass(r.ltv);
+
+    // HF delta
+    const hfDelta = r.hf - r.hfBefore;
+    const hfDeltaClass = hfDelta > 0 ? 'positive' : hfDelta < 0 ? 'danger' : '';
+    const hfDeltaStr = r.drop !== 0 ?
+      ' <span class="' + hfDeltaClass + '" style="font-size:0.8em">(' + (hfDelta >= 0 ? '+' : '') + fmt(hfDelta, 2) + ')</span>' : '';
+
+    return '<tr>' +
+      '<td><b>' + r.drop + '%</b></td>' +
+      '<td>' + fmtUSD(r.btcPrice) + '</td>' +
+      '<td><b>' + fmt(r.collateralBTC, 4) + '</b></td>' +
+      '<td>' + fmtUSD(r.collateralVal) + '</td>' +
+      '<td>' + fmtUSD(r.debt) + '</td>' +
+      '<td class="' + hfBeforeC + '">' + fmt(r.hfBefore, 2) + '</td>' +
+      '<td class="' + hfC + '"><b>' + fmt(r.hf, 2) + '</b>' + hfDeltaStr + '</td>' +
+      '<td class="' + ltvC + '">' + fmt(r.ltv, 1) + '%</td>' +
+      '<td>' + fmtUSD(r.clmmValue) + '</td>' +
+      '<td>' + fmtUSD(r.stabilityZone) + '</td>' +
+      '<td class="positive">' + fmtUSD(r.monthlyIncome) + '</td>' +
+      '<td class="action-cell">' + r.actions + '</td>' +
+      '</tr>';
+  }).join('');
+}
+
+function renderCharts(data) {
+  const labels = data.map(r => r.drop + '%');
+
+  createCharts([
+    { id: 'hfChart', label: 'Health Factor', data: data.map(r => r.hf), color: '#00ff88', refLine: 1.0, refLabel: 'Liquidation' },
+    { id: 'ltvChart', label: 'LTV %', data: data.map(r => r.ltv), color: '#ff6b35', refLine: 85, refLabel: 'Liq Threshold' },
+    { id: 'collateralChart', label: 'Collateral BTC', data: data.map(r => r.collateralBTC), color: '#f7931a' },
+    { id: 'clmmChart', label: 'CLMM Value $', data: data.map(r => r.clmmValue), color: '#9966ff' },
+    { id: 'incomeChart', label: 'Monthly Income $', data: data.map(r => r.monthlyIncome), color: '#00d4aa' },
+    { id: 'stabilityChart', label: 'Stability Zone $', data: data.map(r => r.stabilityZone), color: '#00d4aa' }
+  ], labels);
+}
+
+function renderSummary(data) {
+  const first = data[0], last = data[data.length - 1];
+  const btcGain = ((last.collateralBTC - first.collateralBTC) / first.collateralBTC * 100);
+  const minHF = Math.min(...data.map(r => r.hf));
+  const maxLTV = Math.max(...data.map(r => r.ltv));
+  const avgIncome = data.reduce((s, r) => s + r.monthlyIncome, 0) / data.length;
+
+  document.getElementById('summary').innerHTML = `
+    <h3>📊 Итоги симуляции</h3>
+    <div class="summary-grid">
+      <div class="summary-item">
+        <div class="value">${fmt(first.collateralBTC, 4)}</div>
+        <div class="label">Начальный BTC</div>
+      </div>
+      <div class="summary-item">
+        <div class="value">${fmt(last.collateralBTC, 4)}</div>
+        <div class="label">Итоговый BTC</div>
+      </div>
+      <div class="summary-item">
+        <div class="value positive">+${fmt(btcGain, 1)}%</div>
+        <div class="label">Рост залога</div>
+      </div>
+      <div class="summary-item">
+        <div class="value ${minHF < 1.1 ? 'danger' : minHF < 1.3 ? 'warning' : ''}">${fmt(minHF, 2)}</div>
+        <div class="label">Мин. HF</div>
+      </div>
+      <div class="summary-item">
+        <div class="value ${maxLTV > 80 ? 'danger' : maxLTV > 70 ? 'warning' : ''}">${fmt(maxLTV, 1)}%</div>
+        <div class="label">Макс. LTV</div>
+      </div>
+      <div class="summary-item">
+        <div class="value">${fmtUSD(avgIncome)}</div>
+        <div class="label">Сред. доход/мес</div>
+      </div>
+      <div class="summary-item">
+        <div class="value">${fmtUSD(last.clmmValue)}</div>
+        <div class="label">CLMM в конце</div>
+      </div>
+      <div class="summary-item">
+        <div class="value">${fmtUSD(last.debt)}</div>
+        <div class="label">Долг в конце</div>
+      </div>
+    </div>
+  `;
+}
+
+function renderIncomeSection(data) {
+  const first = data[0];
+  const clmmAPR = getInputValue('clmmAPR', 25);
+  const stabilityAPR = getInputValue('stabilityAPR', 10);
+
+  const monthlyClmm = first.clmmValue * clmmAPR / 100 / 12;
+  const monthlyStability = first.stabilityZone * stabilityAPR / 100 / 12;
+  const monthlyTotal = monthlyClmm + monthlyStability;
+  const annualTotal = monthlyTotal * 12;
+
+  document.getElementById('incomeSection').innerHTML = `
+    <div class="income-display">
+      <div class="amount">${fmtUSD(monthlyTotal)}</div>
+      <div class="label">Ожидаемый доход в месяц (при текущей цене)</div>
+    </div>
+    <div class="info-box">
+      <h4>💡 Расчёт дохода</h4>
+      <table class="guide-box" style="border:none;padding:0;margin:0;background:transparent">
+        <tr>
+          <td>CLMM позиция (${fmtUSD(first.clmmValue)} × ${clmmAPR}% APR)</td>
+          <td style="text-align:right;color:#9966ff"><b>${fmtUSD(monthlyClmm)}/мес</b></td>
+        </tr>
+        <tr>
+          <td>Stability Zone (${fmtUSD(first.stabilityZone)} × ${stabilityAPR}% APR)</td>
+          <td style="text-align:right;color:#00d4aa"><b>${fmtUSD(monthlyStability)}/мес</b></td>
+        </tr>
+        <tr style="border-top:2px solid #444">
+          <td><b>Итого в месяц</b></td>
+          <td style="text-align:right;color:#00ff88"><b>${fmtUSD(monthlyTotal)}</b></td>
+        </tr>
+        <tr>
+          <td><b>Итого в год</b></td>
+          <td style="text-align:right;color:#00ff88"><b>${fmtUSD(annualTotal)}</b></td>
+        </tr>
+      </table>
+      <p style="font-size:0.85em;color:#888;margin-top:10px">
+        ⚠️ Доход меняется при изменении цены BTC и ребалансировке позиций
+      </p>
+    </div>
+  `;
+}
+</script>
+</body>
+</html>
