@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<title>CGS Portfolio Simulation v4</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',sans-serif;background:linear-gradient(135deg,#0f0f23,#1a1a3e);color:#e0e0e0;min-height:100vh;padding:15px}
+.password-overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:linear-gradient(135deg,#0f0f23,#1a1a3e);display:flex;align-items:center;justify-content:center;z-index:9999}
+.password-box{background:#1a1a4a;padding:40px;border-radius:16px;text-align:center;box-shadow:0 10px 40px rgba(0,0,0,0.5)}
+.password-box h2{color:#f7931a;margin-bottom:20px}
+.password-box input{background:#2a2a5a;border:2px solid #444;color:#fff;padding:12px 20px;border-radius:8px;font-size:1em;width:250px;text-align:center}
+.password-box input:focus{outline:none;border-color:#f7931a}
+.password-box button{background:linear-gradient(90deg,#f7931a,#ff6b35);color:#fff;border:none;padding:12px 30px;border-radius:8px;cursor:pointer;font-size:1em;font-weight:bold;margin-top:15px;display:block;width:100%}
+.password-box .error{color:#ff4444;font-size:0.85em;margin-top:10px;display:none}
+.content-hidden{display:none}
+.disclaimer{background:linear-gradient(135deg,#2a1a3a,#1a2a4a);border:2px solid #f7931a;padding:20px;border-radius:12px;margin:20px 0;text-align:center;font-size:1.05em;line-height:1.6}
+.disclaimer b{color:#f7931a}
+.container{max-width:1600px;margin:0 auto}
+h1{text-align:center;color:#f7931a;margin-bottom:8px;font-size:1.6em}
+h2{color:#00d4aa;margin:20px 0 12px;font-size:1.2em;border-bottom:2px solid #00d4aa;padding-bottom:6px}
+.formula-box{background:#1a1a4a;padding:15px;border-radius:10px;margin:15px 0;text-align:center}
+.formula-box .main{color:#f7931a;font-family:monospace;font-size:1em}
+.params-table{background:#1e1e3f;padding:20px;border-radius:10px;margin-bottom:20px}
+.input-table{width:100%;border-collapse:collapse}
+.input-table td{padding:10px;width:50%}
+.input-table label{display:block;font-size:0.85em;color:#888;margin-bottom:6px}
+.input-table input[type="number"]{width:100%;background:#2a2a5a;border:1px solid #444;color:#fff;padding:10px;border-radius:6px;font-size:1em}
+.input-table input:focus{outline:none;border-color:#f7931a}
+.slider-group{margin:20px 0;padding:15px;background:#1a1a4a;border-radius:8px}
+.slider-header{display:flex;justify-content:space-between;margin-bottom:10px;font-size:0.95em}
+.slider-header b{color:#f7931a}
+.slider-group input[type="range"]{width:100%;height:8px;-webkit-appearance:none;background:linear-gradient(90deg,#f7931a,#00d4aa);border-radius:4px;cursor:pointer}
+.slider-group input[type="range"]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;height:22px;background:#fff;border-radius:50%;cursor:pointer;box-shadow:0 2px 6px rgba(0,0,0,0.3)}
+.slider-labels{display:flex;justify-content:space-between;font-size:0.75em;color:#666;margin-top:5px}
+.yield-inputs{display:grid;grid-template-columns:repeat(3,1fr);gap:15px;margin:15px 0;padding:15px;background:#1a1a4a;border-radius:8px}
+.yield-input{text-align:center}
+.yield-input label{display:block;font-size:0.85em;color:#888;margin-bottom:6px}
+.yield-input input{width:80px;background:#2a2a5a;border:1px solid #444;color:#fff;padding:8px;border-radius:6px;text-align:center}
+.yield-input input:focus{outline:none;border-color:#f7931a}
+.yield-total{text-align:center;margin-top:10px;font-size:0.9em}
+.yield-total.valid{color:#00ff88}
+.yield-total.invalid{color:#ff4444}
+button{background:linear-gradient(90deg,#f7931a,#ff6b35);color:#fff;border:none;padding:12px 30px;border-radius:8px;cursor:pointer;font-size:1em;font-weight:bold;margin:10px auto;display:block}
+.table-wrap{overflow-x:auto;margin-bottom:20px}
+table{width:100%;border-collapse:collapse;background:#1a1a3a;border-radius:8px;overflow:hidden;font-size:0.75em}
+th{background:#2d2d6a;color:#f7931a;padding:8px 4px;text-align:center;font-weight:600;white-space:nowrap}
+td{padding:6px 4px;text-align:center;border-bottom:1px solid #333}
+tr:nth-child(even){background:#1e1e4a}
+tr:hover{background:#2a2a6a}
+.positive{color:#00ff88}
+.warning{color:#ffaa00}
+.danger{color:#ff4444}
+.action-cell{text-align:left !important;font-size:0.85em;max-width:180px}
+.log{background:#0a0a1a;padding:15px;border-radius:10px;margin:15px 0;max-height:500px;overflow-y:auto;font-family:monospace;font-size:0.78em;line-height:1.4}
+.log-level{border-left:4px solid #f7931a;padding:10px;margin:10px 0;background:#0f0f2a}
+.log-level h4{color:#f7931a;margin-bottom:8px}
+.log-step{color:#00d4aa;margin:5px 0}
+.log-calc{color:#888;margin-left:15px}
+.log-result{color:#00ff88;font-weight:bold}
+.log-clmm{color:#9966ff}
+.charts{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:15px;margin-top:20px}
+.chart-box{background:#1a1a3a;padding:12px;border-radius:10px}
+.summary{background:linear-gradient(135deg,#1e3a5f,#2a2a5a);padding:15px;border-radius:10px;margin-top:20px}
+.summary h3{color:#00d4aa;margin-bottom:12px}
+.summary-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px}
+.summary-item{text-align:center;padding:10px;background:#1a1a4a;border-radius:8px}
+.summary-item .value{font-size:1.1em;font-weight:bold;color:#f7931a}
+.summary-item .label{font-size:0.65em;color:#888;margin-top:4px}
+.version{text-align:center;color:#444;font-size:0.7em;margin-top:30px;padding:10px}
+</style>
+</head>
+<body>
+<div class="password-overlay" id="passwordOverlay">
+<div class="password-box">
+<h2>🔒 Capital Growth Strategy</h2>
+<input type="password" id="passwordInput" placeholder="Введите пароль" onkeypress="if(event.key==='Enter')checkPassword()">
+<button onclick="checkPassword()">Войти</button>
+<div class="error" id="passwordError">Неверный пароль</div>
+</div>
+</div>
+
+<div class="container content-hidden" id="mainContent">
+<h1>📊 Capital Growth Strategy — Симуляция</h1>
+
+<div class="disclaimer">
+⚡ Симуляция показывает <b>только защитную механику</b> при падении рынка.<br>
+Без учёта доходности DeFi-позиций и регулярных DCA-инвестиций.
+</div>
+
+<h2>⚙️ Параметры</h2>
+<div class="params-table">
+<table class="input-table">
+<tr>
+<td><label>Общий портфель ($)</label><input type="number" id="totalPortfolio" value="100000"></td>
+<td><label>Цена BTC ($)</label><input type="number" id="btcPrice" value="100000"></td>
+</tr>
+<tr>
+<td><label>Initial LTV (%)</label><input type="number" id="initLTV" value="50"></td>
+<td><label>Liq Threshold (%)</label><input type="number" id="liqThreshold" value="85"></td>
+</tr>
+</table>
+
+<div class="slider-group">
+<div class="slider-header">
+<span>Growth Zone: <b id="growthVal">60%</b></span>
+<span>Stability Zone: <b id="stabilityVal">40%</b></span>
+</div>
+<input type="range" id="growthSlider" min="0" max="100" value="40">
+<div class="slider-labels"><span>0%</span><span>50%</span><span>100%</span></div>
+</div>
+
+<div style="color:#00d4aa;font-size:0.95em;margin:15px 0">Yield Zone (% от займа):</div>
+<div class="yield-inputs">
+<div class="yield-input">
+<label>GM Pool %</label>
+<input type="number" id="gmPct" value="40" min="0" max="100">
+</div>
+<div class="yield-input">
+<label>CLMM %</label>
+<input type="number" id="clmmPct" value="30" min="0" max="100">
+</div>
+<div class="yield-input">
+<label>Reserve %</label>
+<input type="number" id="reservePct" value="30" min="0" max="100">
+</div>
+</div>
+<div class="yield-total" id="yieldTotal">Сумма: 100% ✓</div>
+</div>
+
+<button id="runBtn">🚀 Запустить симуляцию</button>
+
+<h2>📋 Таблица состояний</h2>
+<div class="table-wrap">
+<table id="resultsTable">
+<thead><tr>
+<th>Drop</th><th>BTC Price</th><th>Collateral BTC</th><th>Collateral $</th><th>Debt</th><th>HF до</th><th>HF после</th><th>LTV</th>
+<th>GM $</th><th>CLMM $</th><th>Reserve $</th><th>Stability $</th><th>BTC добавлено</th><th>Действия</th>
+</tr></thead>
+<tbody></tbody>
+</table>
+</div>
+
+<h2>📝 Детальный лог расчётов</h2>
+<div class="log" id="logContainer"></div>
+
+<h2>📈 Графики</h2>
+<div class="charts">
+<div class="chart-box"><canvas id="hfChart"></canvas></div>
+<div class="chart-box"><canvas id="ltvChart"></canvas></div>
+<div class="chart-box"><canvas id="collateralChart"></canvas></div>
+<div class="chart-box"><canvas id="stabilityChart"></canvas></div>
+<div class="chart-box"><canvas id="gmChart"></canvas></div>
+<div class="chart-box"><canvas id="clmmChart"></canvas></div>
+</div>
+
+<div class="summary" id="summary"></div>
+<div class="version">v4.8</div>
+</div>
+
+<script>
+function checkPassword() {
+  const input = document.getElementById('passwordInput').value;
+  if (input === 'web3academy_cgs_2025') {
+    document.getElementById('passwordOverlay').style.display = 'none';
+    document.getElementById('mainContent').classList.remove('content-hidden');
+    sessionStorage.setItem('cgs_auth', 'true');
+    runSimulation();
+  } else {
+    document.getElementById('passwordError').style.display = 'block';
+    document.getElementById('passwordInput').value = '';
+  }
+}
+if (sessionStorage.getItem('cgs_auth') === 'true') {
+  document.getElementById('passwordOverlay').style.display = 'none';
+  document.getElementById('mainContent').classList.remove('content-hidden');
+}
+
+let charts = {};
+const fmt = (n,d=2) => n.toLocaleString(undefined,{minimumFractionDigits:d,maximumFractionDigits:d});
+const fmtUSD = n => '$'+n.toLocaleString(undefined,{maximumFractionDigits:0});
+
+document.getElementById('growthSlider').addEventListener('input', function(e) {
+  document.getElementById('growthVal').textContent = (100 - e.target.value) + '%';
+  document.getElementById('stabilityVal').textContent = e.target.value + '%';
+});
+
+['gmPct','clmmPct','reservePct'].forEach(id => {
+  document.getElementById(id).addEventListener('input', updateYieldTotal);
+});
+
+function updateYieldTotal() {
+  const gm = +document.getElementById('gmPct').value || 0;
+  const clmm = +document.getElementById('clmmPct').value || 0;
+  const res = +document.getElementById('reservePct').value || 0;
+  const total = gm + clmm + res;
+  const el = document.getElementById('yieldTotal');
+  el.textContent = 'Сумма: ' + total + '% ' + (total === 100 ? '✓' : '✗');
+  el.className = 'yield-total ' + (total === 100 ? 'valid' : 'invalid');
+}
+
+document.getElementById('runBtn').addEventListener('click', runSimulation);
+
+function runSimulation() {
+  const gmPctVal = +document.getElementById('gmPct').value || 0;
+  const clmmPctVal = +document.getElementById('clmmPct').value || 0;
+  const reservePctVal = +document.getElementById('reservePct').value || 0;
+  const yieldTotal = gmPctVal + clmmPctVal + reservePctVal;
+  
+  if (yieldTotal !== 100) {
+    alert('⚠️ Сумма Yield Zone должна быть 100%!\n\nСейчас: ' + yieldTotal + '%\n\nGM Pool: ' + gmPctVal + '%\nCLMM: ' + clmmPctVal + '%\nReserve: ' + reservePctVal + '%');
+    return;
+  }
+
+  const total = +document.getElementById('totalPortfolio').value;
+  const sliderVal = +document.getElementById('growthSlider').value;
+  const growthPct = (100 - sliderVal) / 100;
+  const stabilityPct = sliderVal / 100;
+  const btcStart = +document.getElementById('btcPrice').value;
+  const initLTV = +document.getElementById('initLTV').value / 100;
+  const liqThresh = +document.getElementById('liqThreshold').value / 100;
+  const gmPct = gmPctVal / 100;
+  const clmmPct = clmmPctVal / 100;
+  const reservePct = reservePctVal / 100;
+
+  const growthZone = total * growthPct;
+  let stabilityZone = total * stabilityPct;
+  const initialStability = stabilityZone;
+  
+  let collateralBTC = growthZone / btcStart;
+  const debt = growthZone * initLTV;
+  
+  let gmValue = debt * gmPct;
+  let clmmValue = debt * clmmPct;
+  let clmmEntryPrice = btcStart;
+  let clmmActive = clmmPct > 0; // false если CLMM = 0%
+  let clmmGeneration = 1;
+  let reserve = debt * reservePct;
+  const initialReserve = reserve;
+
+  const drops = [0, -7, -15, -30, -40, -50, -60, -70];
+  const results = [];
+  let logHTML = '';
+
+  let prevBtcPrice = btcStart;
+  let prevGmValue = gmValue;
+
+  function calcCLMMBtc(usdcAmount, entryPrice, exitPrice) {
+    const avgPrice = Math.sqrt(entryPrice * exitPrice);
+    return usdcAmount / avgPrice;
+  }
+
+  // CLMM value inside range: uses V3 formula
+  function calcCLMMValue(initialValue, entryPrice, currentPrice, lowerPrice, upperPrice) {
+    if (currentPrice <= lowerPrice) {
+      // Полностью в BTC
+      const btcAmount = initialValue / Math.sqrt(entryPrice * lowerPrice);
+      return btcAmount * currentPrice;
+    } else if (currentPrice >= upperPrice) {
+      // Полностью в USDC
+      return initialValue;
+    } else {
+      // Внутри ренжа - V3 формула
+      const sqrtP = Math.sqrt(currentPrice);
+      const sqrtP0 = Math.sqrt(entryPrice);
+      const sqrtPa = Math.sqrt(lowerPrice);
+      const sqrtPb = Math.sqrt(upperPrice);
+      
+      // L из начальной позиции: V₀ = L × [2√P₀ - P₀/√Pb - √Pa]
+      const L = initialValue / (2 * sqrtP0 - entryPrice / sqrtPb - sqrtPa);
+      
+      // x (BTC) = L × (1/√P - 1/√Pb)
+      const x = L * (1 / sqrtP - 1 / sqrtPb);
+      // y (USDC) = L × (√P - √Pa)
+      const y = L * (sqrtP - sqrtPa);
+      
+      return x * currentPrice + y;
+    }
+  }
+
+  drops.forEach((drop, i) => {
+    const btcPrice = btcStart * (1 + drop / 100);
+    let btcAdded = 0;
+    let hfBefore = 0;
+    let actions = [];
+
+    logHTML += '<div class="log-level"><h4>📍 Уровень ' + drop + '% | BTC = ' + fmtUSD(btcPrice) + '</h4>';
+
+    if (i === 0) {
+      actions.push('Начальное состояние');
+      logHTML += '<div class="log-step">Начальное состояние:</div>';
+      logHTML += '<div class="log-calc">• Collateral: ' + fmt(collateralBTC,4) + ' BTC = ' + fmtUSD(growthZone) + '</div>';
+      logHTML += '<div class="log-calc">• Займ (LTV ' + (initLTV*100) + '%): ' + fmtUSD(debt) + '</div>';
+      logHTML += '<div class="log-calc">• GM Pool (' + (gmPct*100) + '%): ' + fmtUSD(gmValue) + '</div>';
+      logHTML += '<div class="log-calc log-clmm">• CLMM (' + (clmmPct*100) + '%): ' + fmtUSD(clmmValue) + ' | Ренж: ' + fmtUSD(btcStart*0.85) + ' - ' + fmtUSD(btcStart*1.05) + '</div>';
+      logHTML += '<div class="log-calc">• Reserve (' + (reservePct*100) + '%): ' + fmtUSD(reserve) + '</div>';
+      logHTML += '<div class="log-calc">• Stability Zone: ' + fmtUSD(stabilityZone) + '</div>';
+    } else {
+      // === GM LOGIC ===
+      const gmRatio = Math.sqrt(btcPrice / prevBtcPrice);
+      let gmBefore = prevGmValue * gmRatio;
+      logHTML += '<div class="log-step">1. GM пересчёт: ' + fmtUSD(prevGmValue) + ' × ' + fmt(gmRatio,4) + ' = <span class="log-result">' + fmtUSD(gmBefore) + '</span></div>';
+
+      let gmBtcAdded = 0;
+      let gmUsdcToReinvest = 0;
+
+      if (drop === -7) {
+        const sellGM = gmBefore * 0.3;
+        gmBtcAdded = (sellGM / 2) / btcPrice;
+        gmUsdcToReinvest = sellGM / 2;
+        gmValue = gmBefore * 0.7 + gmUsdcToReinvest;
+        actions.push('GM: продать 30%');
+        logHTML += '<div class="log-step">2. GM: продаём 30% = ' + fmtUSD(sellGM) + '</div>';
+        logHTML += '<div class="log-calc">• BTC: ' + fmt(gmBtcAdded,6) + ' | USDC→GM: ' + fmtUSD(gmUsdcToReinvest) + '</div>';
+      } else if (drop === -15 || drop === -30 || drop === -50 || drop === -70) {
+        const sellGM = gmBefore;
+        gmBtcAdded = (sellGM / 2) / btcPrice;
+        gmUsdcToReinvest = sellGM / 2;
+
+        let stabilityToGM = 0;
+        if (drop === -30) stabilityToGM = initialStability * 0.3;
+        else if (drop === -50) stabilityToGM = initialStability * 0.4;
+        else if (drop === -70) stabilityToGM = initialStability * 0.3;
+
+        gmValue = gmUsdcToReinvest + stabilityToGM;
+        if (stabilityToGM > 0) stabilityZone -= stabilityToGM;
+
+        actions.push('GM: продать всё');
+        if (stabilityToGM > 0) actions.push('Stability ' + (stabilityToGM/initialStability*100) + '% → GM');
+
+        logHTML += '<div class="log-step">2. GM: продаём всё = ' + fmtUSD(sellGM) + '</div>';
+        logHTML += '<div class="log-calc">• BTC: ' + fmt(gmBtcAdded,6) + ' | USDC: ' + fmtUSD(gmUsdcToReinvest) + '</div>';
+        if (stabilityToGM > 0) {
+          logHTML += '<div class="log-step">3. Stability → GM: ' + fmtUSD(stabilityToGM) + '</div>';
+        }
+        logHTML += '<div class="log-calc">• GM после: <span class="log-result">' + fmtUSD(gmValue) + '</span></div>';
+      } else {
+        // -40% и -60%: никаких действий, просто сохраняем текущую стоимость GM
+        gmValue = gmBefore;
+        logHTML += '<div class="log-step">2. GM: без действий, стоимость = <span class="log-result">' + fmtUSD(gmValue) + '</span></div>';
+      }
+      btcAdded += gmBtcAdded;
+      prevGmValue = gmValue;
+
+      // === CLMM LOGIC ===
+      const clmmLower = clmmEntryPrice * 0.85;
+      const clmmUpper = clmmEntryPrice * 1.05;
+      
+      if (drop === -7 && clmmActive) {
+        // CLMM ещё внутри ренжа, но стоимость изменилась
+        const clmmBefore = clmmValue;
+        clmmValue = calcCLMMValue(clmmBefore, clmmEntryPrice, btcPrice, clmmLower, clmmUpper);
+        const clmmChange = ((clmmValue / clmmBefore) - 1) * 100;
+        logHTML += '<div class="log-step log-clmm">4. CLMM #' + clmmGeneration + ' внутри ренжа:</div>';
+        logHTML += '<div class="log-calc">• Ренж: ' + fmtUSD(clmmLower) + ' - ' + fmtUSD(clmmUpper) + '</div>';
+        logHTML += '<div class="log-calc">• Стоимость: ' + fmtUSD(clmmBefore) + ' → <span class="log-result">' + fmtUSD(clmmValue) + '</span> (' + fmt(clmmChange,1) + '%)</div>';
+      } else if (drop === -15 && clmmActive && clmmGeneration === 1) {
+        const clmmExitPrice = clmmEntryPrice * 0.85;
+        const clmmBtc = calcCLMMBtc(clmmValue, clmmEntryPrice, clmmExitPrice);
+        btcAdded += clmmBtc;
+        actions.push('CLMM #1 → BTC');
+        logHTML += '<div class="log-step log-clmm">4. CLMM #1 закрыта (вышла за ренж):</div>';
+        logHTML += '<div class="log-calc">• Entry: ' + fmtUSD(clmmEntryPrice) + ' → Exit: ' + fmtUSD(clmmExitPrice) + '</div>';
+        logHTML += '<div class="log-calc">• Avg price: ' + fmtUSD(Math.sqrt(clmmEntryPrice*clmmExitPrice)) + '</div>';
+        logHTML += '<div class="log-calc">• BTC получено: <span class="log-result">' + fmt(clmmBtc,6) + '</span></div>';
+
+        // Open new CLMM from Reserve
+        if (reserve > 0) {
+          clmmValue = reserve;
+          clmmEntryPrice = btcPrice;
+          clmmGeneration = 2;
+          reserve = 0;
+          actions.push('Reserve → CLMM #2');
+          logHTML += '<div class="log-step log-clmm">5. Открываем CLMM #2 из Reserve:</div>';
+          logHTML += '<div class="log-calc">• Сумма: ' + fmtUSD(clmmValue) + '</div>';
+          logHTML += '<div class="log-calc">• Ренж: ' + fmtUSD(btcPrice*0.85) + ' - ' + fmtUSD(btcPrice*1.05) + '</div>';
+        } else {
+          clmmValue = 0;
+          clmmActive = false;
+          logHTML += '<div class="log-calc" style="color:#ffaa00">• Reserve = 0, CLMM больше не открываем</div>';
+        }
+      } else if (drop === -15 && clmmPct === 0 && reserve > 0) {
+        // Если CLMM = 0%, Reserve идёт на покупку GM при -15%
+        gmValue += reserve;
+        prevGmValue = gmValue; // Обновляем для следующей итерации
+        actions.push('Reserve → GM');
+        logHTML += '<div class="log-step" style="color:#ff6b9d">4. CLMM = 0%, Reserve → GM:</div>';
+        logHTML += '<div class="log-calc">• Reserve ' + fmtUSD(reserve) + ' → GM</div>';
+        logHTML += '<div class="log-calc">• GM после: <span class="log-result">' + fmtUSD(gmValue) + '</span></div>';
+        reserve = 0;
+      } else if (drop === -30 && clmmActive && clmmGeneration === 2) {
+        const clmmExitPrice = clmmEntryPrice * 0.85;
+        const clmmBtc = calcCLMMBtc(clmmValue, clmmEntryPrice, clmmExitPrice);
+        btcAdded += clmmBtc;
+        clmmValue = 0;
+        clmmActive = false;
+        actions.push('CLMM #2 → BTC, STOP');
+        logHTML += '<div class="log-step log-clmm">4. CLMM #2 закрыта (вышла за ренж):</div>';
+        logHTML += '<div class="log-calc">• Entry: ' + fmtUSD(clmmEntryPrice) + ' → Exit: ' + fmtUSD(clmmExitPrice) + '</div>';
+        logHTML += '<div class="log-calc">• Avg price: ' + fmtUSD(Math.sqrt(clmmEntryPrice*clmmExitPrice)) + '</div>';
+        logHTML += '<div class="log-calc">• BTC получено: <span class="log-result">' + fmt(clmmBtc,6) + '</span></div>';
+        logHTML += '<div class="log-calc" style="color:#ff4444">• CLMM STOP — больше не открываем</div>';
+      } else if (clmmActive && clmmValue > 0) {
+        logHTML += '<div class="log-step log-clmm">CLMM #' + clmmGeneration + ' активна: ' + fmtUSD(clmmValue) + '</div>';
+      }
+
+      // HF ДО добавления BTC в залог
+      const collateralValBefore = collateralBTC * btcPrice;
+      hfBefore = (collateralValBefore * liqThresh) / debt;
+
+      collateralBTC += btcAdded;
+      logHTML += '<div class="log-step">Collateral: +' + fmt(btcAdded,6) + ' BTC → Итого: <span class="log-result">' + fmt(collateralBTC,4) + ' BTC</span></div>';
+    }
+
+    const collateralVal = collateralBTC * btcPrice;
+    const hf = (collateralVal * liqThresh) / debt;
+    const ltv = (debt / collateralVal) * 100;
+
+    // hfBefore для начального состояния = hf (нет действий)
+    const hfBeforeFinal = (i === 0) ? hf : hfBefore;
+
+    const hfClass = hf>1.5 ? 'positive' : hf>1.2 ? 'warning' : 'danger';
+    const hfBeforeClass = hfBeforeFinal>1.5 ? 'positive' : hfBeforeFinal>1.2 ? 'warning' : 'danger';
+    const ltvClass = ltv>75 ? 'danger' : ltv>65 ? 'warning' : '';
+
+    // Лог с HF до/после
+    if (i > 0) {
+      const hfDelta = hf - hfBeforeFinal;
+      const hfDeltaStr = hfDelta >= 0 ? '+' + fmt(hfDelta,2) : fmt(hfDelta,2);
+      const hfDeltaColor = hfDelta >= 0 ? '#00ff88' : '#ff4444';
+      logHTML += '<div class="log-step" style="margin-top:10px;padding-top:10px;border-top:1px solid #333">Метрики: HF до = <span class="' + hfBeforeClass + '">' + fmt(hfBeforeFinal,2) + '</span> → HF после = <span class="' + hfClass + '">' + fmt(hf,2) + '</span> (<span style="color:' + hfDeltaColor + '">' + hfDeltaStr + '</span>) | LTV = <span class="' + ltvClass + '">' + fmt(ltv,1) + '%</span></div>';
+    } else {
+      logHTML += '<div class="log-step" style="margin-top:10px;padding-top:10px;border-top:1px solid #333">Метрики: HF = <span class="' + hfClass + '">' + fmt(hf,2) + '</span> | LTV = <span class="' + ltvClass + '">' + fmt(ltv,1) + '%</span></div>';
+    }
+    logHTML += '</div>';
+
+    results.push({
+      drop, btcPrice, collateralBTC, collateralVal, debt, hfBefore: hfBeforeFinal, hf, ltv,
+      gmValue, clmmValue, reserve, stabilityZone, btcAdded,
+      actions: actions.join('; ') || '-'
+    });
+    
+    prevBtcPrice = btcPrice;
+  });
+
+  renderTable(results);
+  document.getElementById('logContainer').innerHTML = logHTML;
+  renderCharts(results);
+  renderSummary(results);
+}
+
+function renderTable(data) {
+  const tbody = document.querySelector('#resultsTable tbody');
+  tbody.innerHTML = data.map(r => {
+    const hfBeforeC = r.hfBefore>1.5?'positive':r.hfBefore>1.2?'warning':'danger';
+    const hfC = r.hf>1.5?'positive':r.hf>1.2?'warning':'danger';
+    const ltvC = r.ltv>75?'danger':r.ltv>65?'warning':'';
+
+    // HF дельта
+    const hfDelta = r.hf - r.hfBefore;
+    const hfDeltaClass = hfDelta > 0 ? 'positive' : hfDelta < 0 ? 'danger' : '';
+    const hfDeltaStr = r.drop !== 0 ? ' <span class="'+hfDeltaClass+'" style="font-size:0.8em">('+(hfDelta>=0?'+':'')+fmt(hfDelta,2)+')</span>' : '';
+
+    return '<tr><td><b>'+r.drop+'%</b></td><td>'+fmtUSD(r.btcPrice)+'</td><td><b>'+fmt(r.collateralBTC,4)+'</b></td><td>'+fmtUSD(r.collateralVal)+'</td><td>'+fmtUSD(r.debt)+'</td><td class="'+hfBeforeC+'">'+fmt(r.hfBefore,2)+'</td><td class="'+hfC+'"><b>'+fmt(r.hf,2)+'</b>'+hfDeltaStr+'</td><td class="'+ltvC+'">'+fmt(r.ltv,1)+'%</td><td>'+fmtUSD(r.gmValue)+'</td><td>'+fmtUSD(r.clmmValue)+'</td><td>'+fmtUSD(r.reserve)+'</td><td>'+fmtUSD(r.stabilityZone)+'</td><td>'+(r.btcAdded>0?fmt(r.btcAdded,4):'-')+'</td><td class="action-cell">'+r.actions+'</td></tr>';
+  }).join('');
+}
+
+function renderCharts(data) {
+  const labels = data.map(r => r.drop + '%');
+  const cfgs = [
+    {id:'hfChart',label:'Health Factor',data:data.map(r=>r.hf),color:'#00ff88',ref:1.0,refLabel:'Liquidation'},
+    {id:'ltvChart',label:'LTV %',data:data.map(r=>r.ltv),color:'#ff6b35',ref:85,refLabel:'Liq Threshold'},
+    {id:'collateralChart',label:'Collateral BTC',data:data.map(r=>r.collateralBTC),color:'#f7931a'},
+    {id:'stabilityChart',label:'Stability Zone $',data:data.map(r=>r.stabilityZone),color:'#00d4aa'},
+    {id:'gmChart',label:'GM Value $',data:data.map(r=>r.gmValue),color:'#ff6b9d'},
+    {id:'clmmChart',label:'CLMM Value $',data:data.map(r=>r.clmmValue),color:'#9966ff'}
+  ];
+  
+  cfgs.forEach(c => {
+    if(charts[c.id]) charts[c.id].destroy();
+    const ctx = document.getElementById(c.id).getContext('2d');
+    const datasets = [{label:c.label,data:c.data,borderColor:c.color,backgroundColor:c.color+'33',fill:true,tension:0.3,pointRadius:5}];
+    if(c.ref) datasets.push({label:c.refLabel,data:Array(labels.length).fill(c.ref),borderColor:'#ff4444',borderDash:[5,5],pointRadius:0,fill:false});
+    charts[c.id] = new Chart(ctx,{type:'line',data:{labels,datasets},options:{responsive:true,plugins:{legend:{labels:{color:'#e0e0e0'}}},scales:{x:{ticks:{color:'#888'},grid:{color:'#333'}},y:{ticks:{color:'#888'},grid:{color:'#333'}}}}});
+  });
+}
+
+function renderSummary(data) {
+  const first = data[0], last = data[data.length-1];
+  const btcGain = ((last.collateralBTC - first.collateralBTC) / first.collateralBTC * 100);
+  const minHF = Math.min(...data.map(r => r.hf));
+  const maxLTV = Math.max(...data.map(r => r.ltv));
+  const totalBtcAdded = data.reduce((s,r) => s + r.btcAdded, 0);
+  
+  document.getElementById('summary').innerHTML = '<h3>📊 Итоги симуляции</h3><div class="summary-grid"><div class="summary-item"><div class="value">'+fmt(first.collateralBTC,4)+'</div><div class="label">Начальный BTC</div></div><div class="summary-item"><div class="value">'+fmt(last.collateralBTC,4)+'</div><div class="label">Итоговый BTC</div></div><div class="summary-item"><div class="value positive">+'+fmt(btcGain,1)+'%</div><div class="label">Рост залога</div></div><div class="summary-item"><div class="value">+'+fmt(totalBtcAdded,4)+'</div><div class="label">BTC добавлено</div></div><div class="summary-item"><div class="value '+(minHF<1.1?'danger':minHF<1.3?'warning':'')+'">'+fmt(minHF,2)+'</div><div class="label">Мин. HF</div></div><div class="summary-item"><div class="value '+(maxLTV>80?'danger':maxLTV>70?'warning':'')+'">'+fmt(maxLTV,1)+'%</div><div class="label">Макс. LTV</div></div><div class="summary-item"><div class="value">'+fmtUSD(last.stabilityZone)+'</div><div class="label">Остаток Stability</div></div><div class="summary-item"><div class="value">'+fmtUSD(last.gmValue)+'</div><div class="label">GM в конце</div></div></div>';
+}
+
+if (sessionStorage.getItem('cgs_auth') === 'true') {
+  runSimulation();
+}
+</script>
+</body>
+</html>
