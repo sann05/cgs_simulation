@@ -292,6 +292,12 @@ $$\text{Отклонение Y/L} = \frac{|\text{текущий} - 1.0|}{1.0}$$
 | **Capital Growth** | Накопление BTC | Агрессивная стратегия для максимального накопления базового актива |
 | **Hybrid Model** | Доход + Рост | Сбалансированный подход: ежемесячный доход и участие в росте рынка |
 
+### Quiz
+
+| Раздел | Описание |
+|--------|----------|
+| **CGS Quiz** | Тренировка принятия решений для стратегии Capital Growth |
+
 ### Структура файлов
 
 ```
@@ -300,6 +306,7 @@ cgs-simulation/
 ├── capital_growth.html     # Capital Growth симуляция
 ├── index_extended.html     # Capital Growth расширенная (+ S/G, Y/L)
 ├── hybrid.html             # Hybrid Model симуляция
+├── quiz.html               # Quiz — тренировка принятия решений
 ├── shared.css              # Общие стили
 ├── shared.js               # Общие утилиты
 ├── CLAUDE.md               # Инструкции для разработки
@@ -314,6 +321,7 @@ cgs-simulation/
 | Capital Growth | [capital_growth.html](https://cgs-simulation.vercel.app/capital_growth.html) |
 | Capital Growth Extended | [index_extended.html](https://cgs-simulation.vercel.app/index_extended.html) |
 | Hybrid Model | [hybrid.html](https://cgs-simulation.vercel.app/hybrid.html) |
+| Quiz | [quiz.html](https://cgs-simulation.vercel.app/quiz.html) |
 
 - Пароль: `web3academy_cgs_2025`
 
@@ -334,7 +342,32 @@ cgs-simulation/
 
 ---
 
-## 12. Hybrid Model — Детали
+## 12. Quiz — Тренировка принятия решений
+
+Quiz для проверки понимания стратегии Capital Growth.
+
+### Особенности
+
+- 10 случайных вопросов из банка вопросов
+- Категории: GM Pool, CLMM, Stability Zone, DCA, DeFi доходы
+- Перемешанные варианты ответов
+- Детальное отображение сценария (HF, LTV, распределение портфеля)
+- Отслеживание ошибок по категориям
+- Генерация картинки результата для Discord
+
+### Категории вопросов
+
+| Категория | Описание |
+|-----------|----------|
+| GM Pool | Действия с GM токенами при падении/росте |
+| CLMM | Управление CLMM позициями и Reserve |
+| Stability Zone | Использование стейблкоинов для докупок |
+| DCA | Куда направлять регулярные инвестиции |
+| DeFi доходы | Распределение доходов от DeFi позиций |
+
+---
+
+## 13. Hybrid Model — Детали
 
 ### Распределение
 

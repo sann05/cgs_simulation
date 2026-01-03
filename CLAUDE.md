@@ -11,6 +11,12 @@ CGS (Capital Growth System) — симулятор DeFi-портфеля для 
 | **Capital Growth** | Максимальное накопление BTC | `capital_growth.html` |
 | **Hybrid Model** | Ежемесячный доход + рост капитала | `hybrid.html` |
 
+### Quiz
+
+| Раздел | Описание | Файл |
+|--------|----------|------|
+| **CGS Quiz** | Тренировка принятия решений | `quiz.html` |
+
 ## Технический стек
 
 - **Frontend:** Vanilla HTML/CSS/JS
@@ -27,6 +33,7 @@ cgs-simulation/
 ├── capital_growth.html     # Capital Growth симуляция (бывший index.html)
 ├── index_extended.html     # Capital Growth расширенная (+ S/G, Y/L)
 ├── hybrid.html             # Hybrid Model симуляция
+├── quiz.html               # Quiz — тренировка принятия решений
 ├── shared.css              # Общие стили для всех страниц
 ├── shared.js               # Общие утилиты (auth, форматирование, расчёты)
 ├── CLAUDE.md               # Этот файл (инструкции для разработки)
@@ -41,6 +48,7 @@ cgs-simulation/
 | `capital_growth.html` | Capital Growth — базовая версия (v4.8) |
 | `index_extended.html` | Capital Growth — расширенная (v4.9) с S/G и Y/L |
 | `hybrid.html` | Hybrid Model (v1.0) |
+| `quiz.html` | Quiz — тренировка принятия решений (v1.0) |
 | `shared.css` | Общие CSS стили |
 | `shared.js` | Утилиты: auth, fmt(), fmtUSD(), calcCLMM*, chart helpers |
 
@@ -376,6 +384,64 @@ CLMM можно открыть если:
 
 ---
 
+## Quiz — Тренировка принятия решений
+
+### Описание
+
+Quiz для проверки понимания стратегии Capital Growth. Помогает тренировать принятие решений в различных рыночных сценариях.
+
+### Особенности
+
+- 10 случайных вопросов из банка вопросов
+- Категории: GM Pool, CLMM, Stability Zone, DCA, DeFi доходы
+- Перемешанные варианты ответов (правильный ответ на случайной позиции)
+- Детальное отображение сценария: HF, LTV, Debt, распределение портфеля
+- Отслеживание ошибок по категориям
+- Генерация картинки результата для Discord
+
+### Структура вопроса
+
+Каждый вопрос содержит:
+- **Сценарий:** текущая цена BTC, % изменения, HF, LTV, Debt
+- **Распределение портфеля:** Growth/Stability с целевыми значениями
+- **Yield Zone:** GM Pool, CLMM (с ренжем), Reserve
+- **4 варианта ответа:** только 1 правильный
+
+### Добавление новых вопросов
+
+```javascript
+{
+  id: 17,
+  category: "gm",           // gm, clmm, stability, dca, defi
+  categoryName: "GM Pool",  // Для отображения
+  scenario: {
+    btcPrice: 93000,
+    btcChange: -7,
+    hf: 1.58,
+    ltv: 54,
+    debt: 30000,
+    portfolio: {
+      growth: { value: 55800, pct: 58, target: 60 },
+      stability: { value: 40000, pct: 42, target: 40 }
+    },
+    yieldZone: {
+      gm: { value: 11600, pct: 40 },
+      clmm: { value: 8700, pct: 30, rangeLow: 85000, rangeHigh: 105000 },
+      reserve: { value: 9000, pct: 30 }
+    }
+  },
+  question: "Текст вопроса?",
+  options: [
+    { id: "a", text: "Правильный ответ", correct: true },
+    { id: "b", text: "Неправильный ответ", correct: false },
+    { id: "c", text: "Неправильный ответ", correct: false },
+    { id: "d", text: "Неправильный ответ", correct: false }
+  ]
+}
+```
+
+---
+
 ## Контакты и ресурсы
 
 - Документация: см. README.md
@@ -383,6 +449,7 @@ CLMM можно открыть если:
 - Capital Growth: https://cgs-simulation.vercel.app/capital_growth.html
 - Capital Growth Extended: https://cgs-simulation.vercel.app/index_extended.html
 - Hybrid Model: https://cgs-simulation.vercel.app/hybrid.html
+- Quiz: https://cgs-simulation.vercel.app/quiz.html
 - Пароль: web3academy_cgs_2025
 
 ---
@@ -395,6 +462,7 @@ CLMM можно открыть если:
 | v4.8 | capital_growth.html | Capital Growth базовая |
 | v4.9 | index_extended.html | Capital Growth расширенная с S/G и Y/L |
 | v1.0 | hybrid.html | Hybrid Model |
+| v1.0 | quiz.html | Quiz — тренировка принятия решений |
 
 При обновлении:
 1. Инкрементировать версию в `<div class="version">vX.X</div>`
