@@ -1,0 +1,1406 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<title>CGS Quiz — Capital Growth Training</title>
+<script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+<link rel="stylesheet" href="shared.css">
+<style>
+.quiz-container {
+  max-width: 700px;
+  margin: 0 auto;
+}
+
+.quiz-header {
+  text-align: center;
+  margin-bottom: 30px;
+}
+
+.quiz-progress {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding: 10px 15px;
+  background: #1a1a4a;
+  border-radius: 8px;
+}
+
+.progress-text {
+  color: #f7931a;
+  font-weight: bold;
+}
+
+.progress-bar {
+  flex: 1;
+  height: 8px;
+  background: #2a2a5a;
+  border-radius: 4px;
+  margin: 0 15px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #f7931a, #00d4aa);
+  border-radius: 4px;
+  transition: width 0.3s ease;
+}
+
+.scenario-card {
+  background: linear-gradient(135deg, #1a1a4a, #2a2a5a);
+  border: 2px solid #444;
+  border-radius: 16px;
+  padding: 25px;
+  margin-bottom: 20px;
+}
+
+.scenario-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding-bottom: 15px;
+  border-bottom: 1px solid #444;
+}
+
+.scenario-title {
+  color: #f7931a;
+  font-size: 1.2em;
+  font-weight: bold;
+}
+
+.btc-price {
+  text-align: right;
+}
+
+.btc-price .price {
+  font-size: 1.3em;
+  font-weight: bold;
+  color: #fff;
+}
+
+.btc-price .change {
+  font-size: 0.9em;
+}
+
+.btc-price .change.negative { color: #ff4444; }
+.btc-price .change.positive { color: #00ff88; }
+.btc-price .change.neutral { color: #888; }
+
+.metrics-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.metric-box {
+  background: #0a0a1a;
+  padding: 12px;
+  border-radius: 8px;
+  text-align: center;
+}
+
+.metric-box .label {
+  font-size: 0.75em;
+  color: #888;
+  margin-bottom: 4px;
+}
+
+.metric-box .value {
+  font-size: 1.1em;
+  font-weight: bold;
+}
+
+.metric-box .value.safe { color: #00ff88; }
+.metric-box .value.warning { color: #ffaa00; }
+.metric-box .value.danger { color: #ff4444; }
+
+.portfolio-section {
+  margin-bottom: 20px;
+}
+
+.portfolio-section h4 {
+  color: #00d4aa;
+  font-size: 0.9em;
+  margin-bottom: 10px;
+}
+
+.portfolio-bar {
+  display: flex;
+  align-items: center;
+  margin-bottom: 8px;
+  font-size: 0.85em;
+}
+
+.portfolio-bar .name {
+  width: 80px;
+  color: #888;
+}
+
+.portfolio-bar .bar-container {
+  flex: 1;
+  height: 20px;
+  background: #0a0a1a;
+  border-radius: 4px;
+  margin: 0 10px;
+  overflow: hidden;
+}
+
+.portfolio-bar .bar-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.3s ease;
+}
+
+.portfolio-bar .bar-fill.growth { background: linear-gradient(90deg, #f7931a, #ff6b35); }
+.portfolio-bar .bar-fill.stability { background: linear-gradient(90deg, #00d4aa, #00ff88); }
+.portfolio-bar .bar-fill.gm { background: linear-gradient(90deg, #ff6b9d, #ff4444); }
+.portfolio-bar .bar-fill.clmm { background: linear-gradient(90deg, #9966ff, #6633cc); }
+.portfolio-bar .bar-fill.reserve { background: linear-gradient(90deg, #4488ff, #2266cc); }
+
+.portfolio-bar .stats {
+  width: 120px;
+  text-align: right;
+  color: #fff;
+}
+
+.portfolio-bar .pct {
+  color: #f7931a;
+  font-weight: bold;
+}
+
+.target-info {
+  display: inline-block;
+  font-size: 0.85em;
+  color: #f7931a;
+  background: #0a0a1a;
+  padding: 6px 12px;
+  border-radius: 6px;
+  margin-top: 10px;
+  border: 1px solid #f7931a44;
+}
+
+.target-info .label {
+  color: #888;
+  margin-right: 5px;
+}
+
+.clmm-range {
+  font-size: 0.8em;
+  color: #9966ff;
+  margin-left: 90px;
+  margin-top: -5px;
+  margin-bottom: 8px;
+}
+
+.clmm-range.reached {
+  color: #ff4444;
+  font-weight: bold;
+}
+
+.question-box {
+  background: #0a0a1a;
+  border: 2px solid #f7931a;
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 20px;
+}
+
+.question-icon {
+  font-size: 1.5em;
+  margin-right: 10px;
+}
+
+.question-text {
+  font-size: 1.1em;
+  color: #fff;
+}
+
+.income-info {
+  background: linear-gradient(135deg, #1a3a2a, #1a2a3a);
+  border: 1px solid #00d4aa;
+  border-radius: 8px;
+  padding: 15px;
+  margin-bottom: 15px;
+}
+
+.income-info .title {
+  color: #00d4aa;
+  font-weight: bold;
+  margin-bottom: 10px;
+}
+
+.income-info .item {
+  display: flex;
+  justify-content: space-between;
+  margin: 5px 0;
+  font-size: 0.9em;
+}
+
+.options-table {
+  display: table;
+  width: 100%;
+  border-spacing: 10px;
+}
+
+.options-row {
+  display: table-row;
+}
+
+.options-cell {
+  display: table-cell;
+  width: 50%;
+  vertical-align: top;
+}
+
+@media (max-width: 600px) {
+  .options-table,
+  .options-row,
+  .options-cell {
+    display: block;
+    width: 100%;
+  }
+  .options-cell {
+    margin-bottom: 10px;
+  }
+}
+
+.option-btn {
+  display: flex;
+  align-items: flex-start;
+  background: #1a1a4a;
+  border: 2px solid #444;
+  border-radius: 10px;
+  padding: 15px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: left;
+  color: #e0e0e0;
+  font-size: 0.95em;
+  min-height: 80px;
+  height: 100%;
+  box-sizing: border-box;
+  width: 100%;
+}
+
+.option-btn:hover {
+  border-color: #f7931a;
+  background: #2a2a5a;
+}
+
+.option-btn.selected {
+  border-color: #f7931a;
+  background: #2a2a5a;
+}
+
+.option-btn.correct {
+  border-color: #00ff88;
+  background: linear-gradient(135deg, #1a3a2a, #1a2a3a);
+}
+
+.option-btn.incorrect {
+  border-color: #ff4444;
+  background: linear-gradient(135deg, #3a1a1a, #2a1a2a);
+}
+
+.option-btn.disabled {
+  pointer-events: none;
+  opacity: 0.7;
+}
+
+.option-letter {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  background: #0a0a1a;
+  border-radius: 50%;
+  margin-right: 12px;
+  font-weight: bold;
+  color: #f7931a;
+  flex-shrink: 0;
+}
+
+.option-text {
+  flex: 1;
+  line-height: 1.4;
+  text-align: left;
+}
+
+.options-list {
+  position: relative;
+  overflow: hidden;
+  margin-bottom: 20px;
+}
+
+#nextBtn {
+  display: none;
+  width: 100%;
+  height: 50px;
+  background: linear-gradient(90deg, #f7931a, #ff6b35);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 1.1em;
+  font-weight: bold;
+  cursor: pointer;
+  margin: 0;
+  padding: 0;
+  line-height: 50px;
+  text-align: center;
+}
+
+#nextBtn.visible {
+  display: block;
+}
+
+/* Result Card */
+.result-card {
+  display: none;
+  background: linear-gradient(135deg, #1a1a4a, #2a2a5a);
+  border: 2px solid #f7931a;
+  border-radius: 16px;
+  padding: 30px;
+  text-align: center;
+}
+
+.result-card.visible {
+  display: block;
+}
+
+.result-score {
+  font-size: 4em;
+  font-weight: bold;
+  color: #f7931a;
+  margin: 20px 0;
+}
+
+.result-message {
+  font-size: 1.2em;
+  margin-bottom: 20px;
+}
+
+.result-message.excellent { color: #00ff88; }
+.result-message.good { color: #00d4aa; }
+.result-message.average { color: #ffaa00; }
+.result-message.poor { color: #ff4444; }
+
+.errors-section {
+  background: #0a0a1a;
+  border-radius: 10px;
+  padding: 20px;
+  margin: 20px 0;
+  text-align: left;
+}
+
+.errors-section h4 {
+  color: #ff6b9d;
+  margin-bottom: 15px;
+}
+
+.error-category {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 0;
+  border-bottom: 1px solid #333;
+}
+
+.error-category:last-child {
+  border-bottom: none;
+}
+
+.error-category .name {
+  color: #888;
+}
+
+.error-category .count {
+  color: #ff4444;
+  font-weight: bold;
+}
+
+.result-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.result-actions button {
+  padding: 12px 20px;
+}
+
+.btn-secondary {
+  background: linear-gradient(90deg, #444, #555);
+}
+
+.btn-share {
+  background: linear-gradient(90deg, #5865F2, #4752C4);
+}
+
+/* Result image card (for screenshot) */
+#resultImageCard {
+  position: fixed;
+  top: -9999px;
+  left: -9999px;
+  width: 400px;
+  padding: 30px;
+  background: linear-gradient(135deg, #0f0f23, #1a1a3e);
+  border-radius: 16px;
+}
+
+#resultImageCard .header {
+  text-align: center;
+  color: #f7931a;
+  font-size: 1.3em;
+  margin-bottom: 20px;
+}
+
+#resultImageCard .score-circle {
+  width: 120px;
+  height: 120px;
+  margin: 0 auto 20px;
+  background: linear-gradient(135deg, #1a1a4a, #2a2a5a);
+  border: 4px solid #f7931a;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2.5em;
+  font-weight: bold;
+  color: #fff;
+}
+
+#resultImageCard .message {
+  text-align: center;
+  font-size: 1.1em;
+  margin-bottom: 20px;
+}
+
+#resultImageCard .errors {
+  background: #0a0a1a;
+  border-radius: 8px;
+  padding: 15px;
+  margin-bottom: 20px;
+}
+
+#resultImageCard .errors h5 {
+  color: #ff6b9d;
+  margin-bottom: 10px;
+  font-size: 0.9em;
+}
+
+#resultImageCard .error-item {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.85em;
+  padding: 5px 0;
+}
+
+#resultImageCard .footer {
+  text-align: center;
+  color: #666;
+  font-size: 0.8em;
+  border-top: 1px solid #333;
+  padding-top: 15px;
+}
+
+/* Start screen */
+.start-screen {
+  text-align: center;
+  padding: 40px 20px;
+}
+
+.start-screen h2 {
+  border: none;
+  margin-bottom: 20px;
+}
+
+.start-screen .description {
+  color: #888;
+  margin-bottom: 30px;
+  line-height: 1.6;
+}
+
+.start-screen .info-list {
+  text-align: left;
+  background: #1a1a4a;
+  border-radius: 10px;
+  padding: 20px;
+  margin-bottom: 30px;
+}
+
+.start-screen .info-list li {
+  margin: 10px 0;
+  color: #aaa;
+}
+
+.start-btn {
+  font-size: 1.2em;
+  padding: 15px 40px;
+}
+
+/* Toast notification */
+.toast {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #00d4aa;
+  color: #000;
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-weight: bold;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+  z-index: 1000;
+}
+
+.toast.visible {
+  opacity: 1;
+}
+</style>
+</head>
+<body>
+<div class="password-overlay" id="passwordOverlay">
+<div class="password-box">
+<h2>🎯 CGS Quiz</h2>
+<input type="password" id="passwordInput" placeholder="Введите пароль">
+<button onclick="checkPassword()">Войти</button>
+<div class="error" id="passwordError">Неверный пароль</div>
+</div>
+</div>
+
+<div class="container content-hidden" id="mainContent">
+<div class="quiz-container">
+
+<!-- Start Screen -->
+<div class="start-screen" id="startScreen">
+<h1>🎯 CGS Quiz</h1>
+<h2>Capital Growth — тренировка принятия решений</h2>
+<p class="description">
+Тренировка принятия решений в реальных условиях.<br>
+Проверьте своё понимание стратегии Capital Growth.
+</p>
+<ul class="info-list">
+<li>📊 10 случайных вопросов</li>
+<li>⏱️ Без ограничения времени</li>
+<li>📈 Категории: GM Pool, CLMM, Stability, DCA, DeFi доходы</li>
+<li>🎯 Цель: понять когда и какие действия предпринимать</li>
+</ul>
+<button class="start-btn" onclick="startQuiz()">🚀 Начать Quiz</button>
+</div>
+
+<!-- Quiz Screen -->
+<div id="quizScreen" style="display: none;">
+<div class="quiz-header">
+<h1>🎯 CGS Quiz</h1>
+</div>
+
+<div class="quiz-progress">
+<span class="progress-text" id="progressText">Вопрос 1/10</span>
+<div class="progress-bar">
+<div class="progress-fill" id="progressFill" style="width: 10%"></div>
+</div>
+<span class="progress-text" id="categoryText">GM Pool</span>
+</div>
+
+<div class="scenario-card" id="scenarioCard">
+<!-- Dynamic content -->
+</div>
+
+<div class="options-list" id="optionsList">
+<!-- Dynamic options -->
+</div>
+
+<button id="nextBtn">Следующий вопрос →</button>
+</div>
+
+<!-- Result Screen -->
+<div class="result-card" id="resultCard">
+<h2>🎯 Результаты Quiz</h2>
+<div class="result-score" id="resultScore">8/10</div>
+<div class="result-message" id="resultMessage">Хороший результат!</div>
+
+<div class="errors-section" id="errorsSection">
+<h4>Ошибки по категориям:</h4>
+<div id="errorsList"></div>
+</div>
+
+<div class="result-actions">
+<button onclick="restartQuiz()">🔄 Пройти заново</button>
+<button class="btn-secondary" onclick="downloadImage()">📥 Скачать картинку</button>
+<button class="btn-share" onclick="copyImage()">📋 Скопировать для Discord</button>
+</div>
+</div>
+
+<!-- Hidden card for image generation -->
+<div id="resultImageCard">
+<div class="header">🎯 CGS Quiz Result</div>
+<div class="score-circle" id="imgScore">8/10</div>
+<div class="message" id="imgMessage">Хороший результат!</div>
+<div class="errors" id="imgErrors">
+<h5>Ошибки по категориям:</h5>
+<div id="imgErrorsList"></div>
+</div>
+<div class="footer">cgs-simulation.vercel.app/quiz.html</div>
+</div>
+
+</div>
+
+<div class="version">Quiz v1.0</div>
+</div>
+
+<div class="toast" id="toast">Скопировано!</div>
+
+<script src="shared.js"></script>
+<script>
+// Question database
+const allQuestions = [
+  // GM Pool questions (4)
+  {
+    id: 1,
+    category: "gm",
+    categoryName: "GM Pool",
+    scenario: {
+      btcPrice: 93000,
+      btcChange: -7,
+      hf: 1.58,
+      ltv: 54,
+      debt: 30000,
+      portfolio: { growth: { value: 55800, pct: 58, target: 60 }, stability: { value: 40000, pct: 42, target: 40 } },
+      yieldZone: { gm: { value: 11600, pct: 40 }, clmm: { value: 8700, pct: 30, rangeLow: 85000, rangeHigh: 105000 }, reserve: { value: 9000, pct: 30 } }
+    },
+    question: "Падение -7%. Что делать с GM Pool?",
+    options: [
+      { id: "a", text: "Продать 30% GM → WBTC в залог, USDC → купить GM", correct: true },
+      { id: "b", text: "Продать 30% GM → WBTC в залог, USDC → погасить долг", correct: false },
+      { id: "c", text: "Продать 100% GM → всё в залог", correct: false },
+      { id: "d", text: "Ничего не делать, ждать восстановления", correct: false }
+    ]
+  },
+  {
+    id: 2,
+    category: "gm",
+    categoryName: "GM Pool",
+    scenario: {
+      btcPrice: 85000,
+      btcChange: -15,
+      hf: 1.45,
+      ltv: 59,
+      debt: 30000,
+      portfolio: { growth: { value: 51000, pct: 56, target: 60 }, stability: { value: 40000, pct: 44, target: 40 } },
+      yieldZone: { gm: { value: 10800, pct: 40 }, clmm: { value: 8100, pct: 30, rangeLow: 85000, rangeHigh: 105000, reached: true }, reserve: { value: 9000, pct: 30 } }
+    },
+    question: "Падение -15%. GM Pool упал на 8%. Что делать?",
+    options: [
+      { id: "a", text: "Продать 100% GM → WBTC в залог, USDC → купить GM заново", correct: true },
+      { id: "b", text: "Продать 100% GM → всё направить в Stability Zone", correct: false },
+      { id: "c", text: "Продать 30% GM, остальное держать", correct: false },
+      { id: "d", text: "Держать GM, ждать восстановления цены", correct: false }
+    ]
+  },
+  {
+    id: 3,
+    category: "gm",
+    categoryName: "GM Pool",
+    scenario: {
+      btcPrice: 60000,
+      btcChange: -40,
+      hf: 1.18,
+      ltv: 72,
+      debt: 30000,
+      portfolio: { growth: { value: 43200, pct: 52, target: 60 }, stability: { value: 40000, pct: 48, target: 40 } },
+      yieldZone: { gm: { value: 9300, pct: 40 }, clmm: { value: 0, pct: 0, rangeLow: 0, rangeHigh: 0 }, reserve: { value: 0, pct: 0 } }
+    },
+    question: "Падение -40%. GM Pool потерял ~22%. Какое действие?",
+    options: [
+      { id: "a", text: "Мониторинг — никаких активных действий", correct: true },
+      { id: "b", text: "Срочно продать GM и добавить в залог", correct: false },
+      { id: "c", text: "Использовать Stability для покупки GM", correct: false },
+      { id: "d", text: "Закрыть часть долга из Stability", correct: false }
+    ]
+  },
+  {
+    id: 4,
+    category: "gm",
+    categoryName: "GM Pool",
+    scenario: {
+      btcPrice: 110000,
+      btcChange: 10,
+      hf: 1.87,
+      ltv: 45,
+      debt: 30000,
+      portfolio: { growth: { value: 66000, pct: 62, target: 60 }, stability: { value: 40000, pct: 38, target: 40 } },
+      yieldZone: { gm: { value: 12600, pct: 40 }, clmm: { value: 9450, pct: 30, rangeLow: 85000, rangeHigh: 105000 }, reserve: { value: 9000, pct: 30 } }
+    },
+    question: "Рост +10%. GM Pool вырос на ~5%. Что делать?",
+    options: [
+      { id: "a", text: "Держать позицию, продолжать накапливать", correct: true },
+      { id: "b", text: "Продать GM и зафиксировать прибыль в USDC", correct: false },
+      { id: "c", text: "Продать GM → купить BTC в залог", correct: false },
+      { id: "d", text: "Перевести прибыль в Stability Zone", correct: false }
+    ]
+  },
+
+  // CLMM questions (4)
+  {
+    id: 5,
+    category: "clmm",
+    categoryName: "CLMM",
+    scenario: {
+      btcPrice: 85000,
+      btcChange: -15,
+      hf: 1.45,
+      ltv: 59,
+      debt: 30000,
+      portfolio: { growth: { value: 51000, pct: 56, target: 60 }, stability: { value: 40000, pct: 44, target: 40 } },
+      yieldZone: { gm: { value: 10800, pct: 40 }, clmm: { value: 9000, pct: 30, rangeLow: 85000, rangeHigh: 105000, reached: true }, reserve: { value: 9000, pct: 30 } }
+    },
+    question: "CLMM #1 достигла нижней границы ренжа. Что делать?",
+    options: [
+      { id: "a", text: "Закрыть CLMM → BTC в залог → открыть CLMM #2 из Reserve", correct: true },
+      { id: "b", text: "Закрыть CLMM → BTC в залог → Reserve оставить как есть", correct: false },
+      { id: "c", text: "Оставить CLMM, она автоматически восстановится", correct: false },
+      { id: "d", text: "Закрыть CLMM → всё направить на погашение долга", correct: false }
+    ]
+  },
+  {
+    id: 6,
+    category: "clmm",
+    categoryName: "CLMM",
+    scenario: {
+      btcPrice: 70000,
+      btcChange: -30,
+      hf: 1.21,
+      ltv: 70,
+      debt: 30000,
+      portfolio: { growth: { value: 42700, pct: 52, target: 60 }, stability: { value: 28000, pct: 48, target: 40 } },
+      yieldZone: { gm: { value: 13500, pct: 45 }, clmm: { value: 9000, pct: 30, rangeLow: 72250, rangeHigh: 89250, reached: true }, reserve: { value: 0, pct: 0 } }
+    },
+    question: "CLMM #2 закрылась, Reserve = 0. Что делать?",
+    options: [
+      { id: "a", text: "CLMM → BTC в залог. STOP — больше CLMM не открываем", correct: true },
+      { id: "b", text: "CLMM → BTC в залог → взять из Stability для CLMM #3", correct: false },
+      { id: "c", text: "CLMM → BTC в залог → увеличить долг для CLMM #3", correct: false },
+      { id: "d", text: "Держать CLMM, ждать восстановления цены", correct: false }
+    ]
+  },
+  {
+    id: 7,
+    category: "clmm",
+    categoryName: "CLMM",
+    scenario: {
+      btcPrice: 85000,
+      btcChange: -15,
+      hf: 1.45,
+      ltv: 59,
+      debt: 30000,
+      portfolio: { growth: { value: 51000, pct: 56, target: 60 }, stability: { value: 40000, pct: 44, target: 40 } },
+      yieldZone: { gm: { value: 21000, pct: 70 }, clmm: { value: 0, pct: 0, rangeLow: 0, rangeHigh: 0 }, reserve: { value: 9000, pct: 30 } }
+    },
+    question: "CLMM изначально = 0%. Падение -15%. Что делать с Reserve?",
+    options: [
+      { id: "a", text: "Reserve → купить GM токены", correct: true },
+      { id: "b", text: "Reserve → открыть CLMM позицию", correct: false },
+      { id: "c", text: "Reserve → перевести в Stability Zone", correct: false },
+      { id: "d", text: "Reserve → оставить как есть", correct: false }
+    ]
+  },
+  {
+    id: 8,
+    category: "clmm",
+    categoryName: "CLMM",
+    scenario: {
+      btcPrice: 90000,
+      btcChange: -10,
+      hf: 1.51,
+      ltv: 56,
+      debt: 30000,
+      portfolio: { growth: { value: 54000, pct: 57, target: 60 }, stability: { value: 40000, pct: 43, target: 40 } },
+      yieldZone: { gm: { value: 11200, pct: 40 }, clmm: { value: 8600, pct: 30, rangeLow: 85000, rangeHigh: 105000 }, reserve: { value: 9000, pct: 30 } }
+    },
+    question: "Падение -10%. CLMM ещё внутри ренжа. Что делать?",
+    options: [
+      { id: "a", text: "Ничего — CLMM работает, ждём дальнейшего движения", correct: true },
+      { id: "b", text: "Превентивно закрыть CLMM и зафиксировать", correct: false },
+      { id: "c", text: "Сузить ренж для большей доходности", correct: false },
+      { id: "d", text: "Добавить средства в CLMM из Reserve", correct: false }
+    ]
+  },
+
+  // Stability Zone questions (3)
+  {
+    id: 9,
+    category: "stability",
+    categoryName: "Stability Zone",
+    scenario: {
+      btcPrice: 70000,
+      btcChange: -30,
+      hf: 1.21,
+      ltv: 70,
+      debt: 30000,
+      portfolio: { growth: { value: 42000, pct: 51, target: 60 }, stability: { value: 40000, pct: 49, target: 40 } },
+      yieldZone: { gm: { value: 15200, pct: 51 }, clmm: { value: 0, pct: 0, rangeLow: 0, rangeHigh: 0 }, reserve: { value: 0, pct: 0 } }
+    },
+    question: "Падение -30%. Сколько Stability Zone использовать?",
+    options: [
+      { id: "a", text: "30% от начальной Stability → купить GM", correct: true },
+      { id: "b", text: "50% от начальной Stability → купить GM", correct: false },
+      { id: "c", text: "100% Stability → всё в GM", correct: false },
+      { id: "d", text: "0% — держать Stability на случай дальнейшего падения", correct: false }
+    ]
+  },
+  {
+    id: 10,
+    category: "stability",
+    categoryName: "Stability Zone",
+    scenario: {
+      btcPrice: 50000,
+      btcChange: -50,
+      hf: 1.06,
+      ltv: 80,
+      debt: 30000,
+      portfolio: { growth: { value: 37500, pct: 48, target: 60 }, stability: { value: 28000, pct: 52, target: 40 } },
+      yieldZone: { gm: { value: 17000, pct: 57 }, clmm: { value: 0, pct: 0, rangeLow: 0, rangeHigh: 0 }, reserve: { value: 0, pct: 0 } }
+    },
+    question: "Падение -50%. Куда направить 40% Stability?",
+    options: [
+      { id: "a", text: "40% Stability → купить GM токены", correct: true },
+      { id: "b", text: "40% Stability → купить BTC напрямую в залог", correct: false },
+      { id: "c", text: "40% Stability → погасить часть долга", correct: false },
+      { id: "d", text: "Не использовать — HF слишком низкий", correct: false }
+    ]
+  },
+  {
+    id: 11,
+    category: "stability",
+    categoryName: "Stability Zone",
+    scenario: {
+      btcPrice: 60000,
+      btcChange: -40,
+      hf: 1.18,
+      ltv: 72,
+      debt: 30000,
+      portfolio: { growth: { value: 41400, pct: 51, target: 60 }, stability: { value: 40000, pct: 49, target: 40 } },
+      yieldZone: { gm: { value: 14000, pct: 47 }, clmm: { value: 0, pct: 0, rangeLow: 0, rangeHigh: 0 }, reserve: { value: 0, pct: 0 } }
+    },
+    question: "Падение -40%. Что делать со Stability Zone?",
+    options: [
+      { id: "a", text: "Мониторинг — ждать уровня -50% для действий", correct: true },
+      { id: "b", text: "Использовать 30% для покупки GM", correct: false },
+      { id: "c", text: "Использовать 50% для покупки BTC", correct: false },
+      { id: "d", text: "Погасить часть долга для повышения HF", correct: false }
+    ]
+  },
+
+  // DCA questions (4)
+  {
+    id: 12,
+    category: "dca",
+    categoryName: "DCA решения",
+    scenario: {
+      btcPrice: 92000,
+      btcChange: -8,
+      hf: 1.35,
+      ltv: 63,
+      debt: 30000,
+      portfolio: { growth: { value: 55200, pct: 58, target: 60 }, stability: { value: 35000, pct: 37, target: 40 } },
+      yieldZone: { gm: { value: 11500, pct: 38 }, clmm: { value: 8800, pct: 29, rangeLow: 85000, rangeHigh: 105000 }, reserve: { value: 9000, pct: 30 } }
+    },
+    question: "HF = 1.35 (низкий). Получили DCA $1,000. Куда направить?",
+    options: [
+      { id: "a", text: "В Stability Zone — приоритет безопасности при низком HF", correct: true },
+      { id: "b", text: "В Yield Zone — докупить GM", correct: false },
+      { id: "c", text: "В Growth Zone — купить BTC в залог", correct: false },
+      { id: "d", text: "Погасить часть долга", correct: false }
+    ]
+  },
+  {
+    id: 13,
+    category: "dca",
+    categoryName: "DCA решения",
+    scenario: {
+      btcPrice: 105000,
+      btcChange: 5,
+      hf: 1.80,
+      ltv: 47,
+      debt: 30000,
+      portfolio: { growth: { value: 63000, pct: 61, target: 60 }, stability: { value: 40000, pct: 39, target: 40 } },
+      yieldZone: { gm: { value: 3000, pct: 10 }, clmm: { value: 0, pct: 0, rangeLow: 0, rangeHigh: 0 }, reserve: { value: 0, pct: 0 } }
+    },
+    question: "HF = 1.80. Yield Zone почти пуста (10% от долга). DCA $1,000?",
+    options: [
+      { id: "a", text: "В Yield Zone — восполнить GM позицию", correct: true },
+      { id: "b", text: "В Stability Zone", correct: false },
+      { id: "c", text: "В Growth Zone — купить BTC", correct: false },
+      { id: "d", text: "Сохранить в USDC отдельно", correct: false }
+    ]
+  },
+  {
+    id: 14,
+    category: "dca",
+    categoryName: "DCA решения",
+    scenario: {
+      btcPrice: 95000,
+      btcChange: -5,
+      hf: 1.60,
+      ltv: 53,
+      debt: 30000,
+      portfolio: { growth: { value: 57000, pct: 74, target: 60 }, stability: { value: 20000, pct: 26, target: 40 } },
+      yieldZone: { gm: { value: 11000, pct: 37 }, clmm: { value: 9000, pct: 30, rangeLow: 85000, rangeHigh: 105000 }, reserve: { value: 9000, pct: 30 } }
+    },
+    question: "HF = 1.60. Stability = 26% (цель 40%). DCA $1,000?",
+    options: [
+      { id: "a", text: "В Stability Zone — восполнить до целевого уровня", correct: true },
+      { id: "b", text: "В Yield Zone — увеличить доходность", correct: false },
+      { id: "c", text: "В Growth Zone — больше BTC", correct: false },
+      { id: "d", text: "Разделить 50/50 между Stability и Yield", correct: false }
+    ]
+  },
+  {
+    id: 15,
+    category: "dca",
+    categoryName: "DCA решения",
+    scenario: {
+      btcPrice: 100000,
+      btcChange: 0,
+      hf: 1.70,
+      ltv: 50,
+      debt: 30000,
+      portfolio: { growth: { value: 60000, pct: 60, target: 60 }, stability: { value: 40000, pct: 40, target: 40 } },
+      yieldZone: { gm: { value: 12000, pct: 40 }, clmm: { value: 9000, pct: 30, rangeLow: 85000, rangeHigh: 105000 }, reserve: { value: 9000, pct: 30 } }
+    },
+    question: "Всё в балансе: HF = 1.70, Growth/Stability = 60/40, Yield Zone = 100% от займа. DCA $1,000?",
+    options: [
+      { id: "a", text: "В Stability Zone — поддержать баланс", correct: true },
+      { id: "b", text: "В Growth Zone — увеличить BTC", correct: false },
+      { id: "c", text: "В Yield Zone — увеличить доходность", correct: false },
+      { id: "d", text: "Не важно куда — всё в балансе", correct: false }
+    ]
+  },
+
+  // DeFi income questions (1)
+  {
+    id: 16,
+    category: "defi",
+    categoryName: "DeFi доходы",
+    scenario: {
+      btcPrice: 100000,
+      btcChange: 0,
+      hf: 1.70,
+      ltv: 50,
+      debt: 30000,
+      portfolio: { growth: { value: 60000, pct: 60, target: 60 }, stability: { value: 40000, pct: 40, target: 40 } },
+      yieldZone: { gm: { value: 12000, pct: 40 }, clmm: { value: 9000, pct: 30, rangeLow: 85000, rangeHigh: 105000 }, reserve: { value: 9000, pct: 30 } },
+      income: { usdc: 500, btc: 0.005, btcValue: 500 }
+    },
+    question: "CLMM за месяц принесла $500 USDC + 0.005 BTC ($500). Куда направить?",
+    options: [
+      { id: "a", text: "Всё в Growth Zone (залог) — USDC → BTC → залог", correct: true },
+      { id: "b", text: "USDC → Stability, BTC → Growth", correct: false },
+      { id: "c", text: "Реинвестировать обратно в CLMM", correct: false },
+      { id: "d", text: "USDC → погасить долг, BTC → Growth", correct: false }
+    ]
+  }
+];
+
+// Quiz state
+let currentQuestions = [];
+let currentQuestionIndex = 0;
+let answers = [];
+let errors = { gm: 0, clmm: 0, stability: 0, dca: 0, defi: 0 };
+
+const categoryNames = {
+  gm: "GM Pool",
+  clmm: "CLMM",
+  stability: "Stability Zone",
+  dca: "DCA решения",
+  defi: "DeFi доходы"
+};
+
+function onAuthSuccess() {
+  // Show start screen
+}
+
+function startQuiz() {
+  // Reset state
+  currentQuestionIndex = 0;
+  answers = [];
+  errors = { gm: 0, clmm: 0, stability: 0, dca: 0, defi: 0 };
+
+  // Select 10 random questions
+  const shuffled = [...allQuestions].sort(() => Math.random() - 0.5);
+  currentQuestions = shuffled.slice(0, 10);
+
+  // Show quiz screen
+  document.getElementById('startScreen').style.display = 'none';
+  document.getElementById('quizScreen').style.display = 'block';
+  document.getElementById('resultCard').classList.remove('visible');
+
+  renderQuestion();
+}
+
+function renderQuestion() {
+  const q = currentQuestions[currentQuestionIndex];
+  const s = q.scenario;
+
+  // Update progress
+  document.getElementById('progressText').textContent = `Вопрос ${currentQuestionIndex + 1}/10`;
+  document.getElementById('progressFill').style.width = `${(currentQuestionIndex + 1) * 10}%`;
+  document.getElementById('categoryText').textContent = q.categoryName;
+
+  // Build scenario HTML
+  let html = `
+    <div class="scenario-header">
+      <div class="scenario-title">📊 Сценарий</div>
+      <div class="btc-price">
+        <div class="price">BTC: ${fmtUSD(s.btcPrice)}</div>
+        <div class="change ${s.btcChange < 0 ? 'negative' : s.btcChange > 0 ? 'positive' : 'neutral'}">
+          ${s.btcChange >= 0 ? '+' : ''}${s.btcChange}% от $100,000
+        </div>
+      </div>
+    </div>
+
+    <div class="metrics-row">
+      <div class="metric-box">
+        <div class="label">Health Factor</div>
+        <div class="value ${s.hf > 1.5 ? 'safe' : s.hf > 1.2 ? 'warning' : 'danger'}">${fmt(s.hf, 2)}</div>
+      </div>
+      <div class="metric-box">
+        <div class="label">LTV</div>
+        <div class="value ${s.ltv > 75 ? 'danger' : s.ltv > 65 ? 'warning' : ''}">${s.ltv}%</div>
+      </div>
+      <div class="metric-box">
+        <div class="label">Debt</div>
+        <div class="value">${fmtUSD(s.debt)}</div>
+      </div>
+    </div>
+
+    <div class="portfolio-section">
+      <h4>📊 Распределение портфеля (Growth / Stability):</h4>
+      <div class="portfolio-bar">
+        <span class="name">Growth</span>
+        <div class="bar-container">
+          <div class="bar-fill growth" style="width: ${s.portfolio.growth.pct}%"></div>
+        </div>
+        <span class="stats"><span class="pct">${s.portfolio.growth.pct}%</span> │ ${fmtUSD(s.portfolio.growth.value)}</span>
+      </div>
+      <div class="portfolio-bar">
+        <span class="name">Stability</span>
+        <div class="bar-container">
+          <div class="bar-fill stability" style="width: ${s.portfolio.stability.pct}%"></div>
+        </div>
+        <span class="stats"><span class="pct">${s.portfolio.stability.pct}%</span> │ ${fmtUSD(s.portfolio.stability.value)}</span>
+      </div>
+      <div class="target-info">
+        <span class="label">🎯 Целевое распределение:</span>
+        <b>Growth ${s.portfolio.growth.target}% / Stability ${s.portfolio.stability.target}%</b>
+      </div>
+    </div>
+
+    <div class="portfolio-section">
+      <h4>💰 Yield Zone (из займа ${fmtUSD(s.debt)}):</h4>
+      <div class="portfolio-bar">
+        <span class="name">GM Pool</span>
+        <div class="bar-container">
+          <div class="bar-fill gm" style="width: ${s.yieldZone.gm.pct}%"></div>
+        </div>
+        <span class="stats"><span class="pct">${s.yieldZone.gm.pct}%</span> │ ${fmtUSD(s.yieldZone.gm.value)}</span>
+      </div>
+  `;
+
+  if (s.yieldZone.clmm.pct > 0 || s.yieldZone.clmm.rangeLow > 0) {
+    html += `
+      <div class="portfolio-bar">
+        <span class="name">CLMM</span>
+        <div class="bar-container">
+          <div class="bar-fill clmm" style="width: ${s.yieldZone.clmm.pct}%"></div>
+        </div>
+        <span class="stats"><span class="pct">${s.yieldZone.clmm.pct}%</span> │ ${fmtUSD(s.yieldZone.clmm.value)}</span>
+      </div>
+    `;
+    if (s.yieldZone.clmm.rangeLow > 0) {
+      html += `
+        <div class="clmm-range ${s.yieldZone.clmm.reached ? 'reached' : ''}">
+          └─ Ренж: ${fmtUSD(s.yieldZone.clmm.rangeLow)} — ${fmtUSD(s.yieldZone.clmm.rangeHigh)}
+          ${s.yieldZone.clmm.reached ? ' (достигнут!)' : ''}
+        </div>
+      `;
+    }
+  }
+
+  html += `
+      <div class="portfolio-bar">
+        <span class="name">Reserve</span>
+        <div class="bar-container">
+          <div class="bar-fill reserve" style="width: ${s.yieldZone.reserve.pct}%"></div>
+        </div>
+        <span class="stats"><span class="pct">${s.yieldZone.reserve.pct}%</span> │ ${fmtUSD(s.yieldZone.reserve.value)}</span>
+      </div>
+    </div>
+  `;
+
+  // Add income info for DeFi question
+  if (s.income) {
+    html += `
+      <div class="income-info">
+        <div class="title">💰 Доход за месяц:</div>
+        <div class="item"><span>USDC (комиссии)</span><span>${fmtUSD(s.income.usdc)}</span></div>
+        <div class="item"><span>BTC (${s.income.btc} BTC)</span><span>${fmtUSD(s.income.btcValue)}</span></div>
+        <div class="item" style="border-top: 1px solid #444; padding-top: 5px; margin-top: 5px;">
+          <span><b>Итого</b></span><span><b>${fmtUSD(s.income.usdc + s.income.btcValue)}</b></span>
+        </div>
+      </div>
+    `;
+  }
+
+  html += `
+    <div class="question-box">
+      <span class="question-icon">❓</span>
+      <span class="question-text">${q.question}</span>
+    </div>
+  `;
+
+  document.getElementById('scenarioCard').innerHTML = html;
+
+  // Shuffle options and assign new letters (A, B, C, D)
+  const shuffledOpts = [...q.options].sort(() => Math.random() - 0.5);
+  const letters = ['a', 'b', 'c', 'd'];
+  shuffledOpts.forEach((opt, i) => {
+    opt.displayLetter = letters[i];
+  });
+
+  // Store shuffled options for answer checking
+  currentQuestions[currentQuestionIndex].shuffledOptions = shuffledOpts;
+
+  // Render options as 2x2 table (A,B left column, C,D right column)
+  const optionsHtml = `
+    <div class="options-table">
+      <div class="options-row">
+        <div class="options-cell">
+          <button class="option-btn" data-idx="0" onclick="selectOption(0)">
+            <span class="option-letter">${shuffledOpts[0].displayLetter.toUpperCase()}</span>
+            <span class="option-text">${shuffledOpts[0].text}</span>
+          </button>
+        </div>
+        <div class="options-cell">
+          <button class="option-btn" data-idx="2" onclick="selectOption(2)">
+            <span class="option-letter">${shuffledOpts[2].displayLetter.toUpperCase()}</span>
+            <span class="option-text">${shuffledOpts[2].text}</span>
+          </button>
+        </div>
+      </div>
+      <div class="options-row">
+        <div class="options-cell">
+          <button class="option-btn" data-idx="1" onclick="selectOption(1)">
+            <span class="option-letter">${shuffledOpts[1].displayLetter.toUpperCase()}</span>
+            <span class="option-text">${shuffledOpts[1].text}</span>
+          </button>
+        </div>
+        <div class="options-cell">
+          <button class="option-btn" data-idx="3" onclick="selectOption(3)">
+            <span class="option-letter">${shuffledOpts[3].displayLetter.toUpperCase()}</span>
+            <span class="option-text">${shuffledOpts[3].text}</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  `;
+
+  document.getElementById('optionsList').innerHTML = optionsHtml;
+  document.getElementById('nextBtn').classList.remove('visible');
+}
+
+function selectOption(optionIdx) {
+  const q = currentQuestions[currentQuestionIndex];
+  const shuffledOpts = q.shuffledOptions;
+  const selectedOption = shuffledOpts[optionIdx];
+
+  // Find correct option index in shuffled array
+  const correctIdx = shuffledOpts.findIndex(o => o.correct);
+
+  // Store answer
+  answers.push({
+    questionId: q.id,
+    category: q.category,
+    selected: optionIdx,
+    correct: selectedOption.correct
+  });
+
+  // Track errors
+  if (!selectedOption.correct) {
+    errors[q.category]++;
+  }
+
+  // Update UI
+  const buttons = document.querySelectorAll('.option-btn');
+  buttons.forEach(btn => {
+    btn.classList.add('disabled');
+    const btnIdx = parseInt(btn.dataset.idx);
+    if (btnIdx === correctIdx) {
+      btn.classList.add('correct');
+    } else if (btnIdx === optionIdx && !selectedOption.correct) {
+      btn.classList.add('incorrect');
+    }
+  });
+
+  // Show next button
+  const nextBtn = document.getElementById('nextBtn');
+  if (currentQuestionIndex < 9) {
+    nextBtn.textContent = 'Следующий вопрос →';
+  } else {
+    nextBtn.textContent = 'Показать результаты →';
+  }
+  nextBtn.classList.add('visible');
+}
+
+function nextQuestion() {
+  currentQuestionIndex++;
+
+  if (currentQuestionIndex >= 10) {
+    showResults();
+  } else {
+    renderQuestion();
+  }
+}
+
+function showResults() {
+  document.getElementById('quizScreen').style.display = 'none';
+
+  const correctCount = answers.filter(a => a.correct).length;
+  const score = `${correctCount}/10`;
+
+  let message, messageClass;
+  if (correctCount === 10) {
+    message = '🏆 Отлично! Вы готовы к реальным решениям';
+    messageClass = 'excellent';
+  } else if (correctCount >= 8) {
+    message = '✅ Хороший результат! Проверьте категории ошибок';
+    messageClass = 'good';
+  } else if (correctCount >= 6) {
+    message = '⚠️ Рекомендуем повторить материал';
+    messageClass = 'average';
+  } else {
+    message = '📚 Пройдите документацию заново перед повтором';
+    messageClass = 'poor';
+  }
+
+  document.getElementById('resultScore').textContent = score;
+  document.getElementById('resultMessage').textContent = message;
+  document.getElementById('resultMessage').className = 'result-message ' + messageClass;
+
+  // Build errors list
+  let errorsHtml = '';
+  let hasErrors = false;
+  for (const [cat, count] of Object.entries(errors)) {
+    if (count > 0) {
+      hasErrors = true;
+      errorsHtml += `
+        <div class="error-category">
+          <span class="name">🔸 ${categoryNames[cat]}</span>
+          <span class="count">${count} ${count === 1 ? 'ошибка' : 'ошибки'}</span>
+        </div>
+      `;
+    }
+  }
+
+  if (hasErrors) {
+    document.getElementById('errorsList').innerHTML = errorsHtml;
+    document.getElementById('errorsSection').style.display = 'block';
+  } else {
+    document.getElementById('errorsSection').style.display = 'none';
+  }
+
+  // Update image card
+  document.getElementById('imgScore').textContent = score;
+  document.getElementById('imgMessage').textContent = message;
+  document.getElementById('imgMessage').className = 'message ' + messageClass;
+
+  if (hasErrors) {
+    document.getElementById('imgErrorsList').innerHTML = errorsHtml.replace(/error-category/g, 'error-item');
+    document.getElementById('imgErrors').style.display = 'block';
+  } else {
+    document.getElementById('imgErrors').style.display = 'none';
+  }
+
+  document.getElementById('resultCard').classList.add('visible');
+}
+
+function restartQuiz() {
+  document.getElementById('resultCard').classList.remove('visible');
+  document.getElementById('startScreen').style.display = 'block';
+}
+
+async function downloadImage() {
+  const card = document.getElementById('resultImageCard');
+  card.style.top = '0';
+  card.style.left = '0';
+  card.style.zIndex = '9999';
+
+  try {
+    const canvas = await html2canvas(card, {
+      backgroundColor: '#0f0f23',
+      scale: 2
+    });
+
+    const link = document.createElement('a');
+    link.download = 'cgs-quiz-result.png';
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+  } finally {
+    card.style.top = '-9999px';
+    card.style.left = '-9999px';
+    card.style.zIndex = '';
+  }
+}
+
+async function copyImage() {
+  const card = document.getElementById('resultImageCard');
+  card.style.top = '0';
+  card.style.left = '0';
+  card.style.zIndex = '9999';
+
+  try {
+    const canvas = await html2canvas(card, {
+      backgroundColor: '#0f0f23',
+      scale: 2
+    });
+
+    canvas.toBlob(async (blob) => {
+      try {
+        await navigator.clipboard.write([
+          new ClipboardItem({ 'image/png': blob })
+        ]);
+        showToast('Картинка скопирована!');
+      } catch (err) {
+        // Fallback: download instead
+        const link = document.createElement('a');
+        link.download = 'cgs-quiz-result.png';
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+        showToast('Скачано (копирование не поддерживается)');
+      }
+    });
+  } finally {
+    card.style.top = '-9999px';
+    card.style.left = '-9999px';
+    card.style.zIndex = '';
+  }
+}
+
+function showToast(message) {
+  const toast = document.getElementById('toast');
+  toast.textContent = message;
+  toast.classList.add('visible');
+  setTimeout(() => toast.classList.remove('visible'), 2000);
+}
+
+// Initialize next button click handler
+document.getElementById('nextBtn').onclick = nextQuestion;
+</script>
+</body>
+</html>
