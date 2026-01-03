@@ -285,36 +285,88 @@ $$\text{Отклонение Y/L} = \frac{|\text{текущий} - 1.0|}{1.0}$$
 
 ## 11. Симулятор
 
-### Версии симулятора
+### Две модели
 
-| Версия | Описание | Ссылка |
-|--------|----------|--------|
-| **Базовая** (v4.8) | HF до/после, без S/G и Y/L | [index.html](https://cgs-simulation.vercel.app) |
-| **Расширенная** (v4.9) | + S/G и Y/L Ratio до/после действий | [index_extended.html](https://cgs-simulation.vercel.app/index_extended.html) |
+| Модель | Цель | Описание |
+|--------|------|----------|
+| **Capital Growth** | Накопление BTC | Агрессивная стратегия для максимального накопления базового актива |
+| **Hybrid Model** | Доход + Рост | Сбалансированный подход: ежемесячный доход и участие в росте рынка |
+
+### Структура файлов
+
+```
+cgs-simulation/
+├── index.html              # Landing page — выбор модели
+├── capital_growth.html     # Capital Growth симуляция
+├── index_extended.html     # Capital Growth расширенная (+ S/G, Y/L)
+├── hybrid.html             # Hybrid Model симуляция
+├── shared.css              # Общие стили
+├── shared.js               # Общие утилиты
+├── CLAUDE.md               # Инструкции для разработки
+└── README.md               # Документация
+```
+
+### Ссылки
+
+| Страница | Ссылка |
+|----------|--------|
+| Выбор модели | [index.html](https://cgs-simulation.vercel.app) |
+| Capital Growth | [capital_growth.html](https://cgs-simulation.vercel.app/capital_growth.html) |
+| Capital Growth Extended | [index_extended.html](https://cgs-simulation.vercel.app/index_extended.html) |
+| Hybrid Model | [hybrid.html](https://cgs-simulation.vercel.app/hybrid.html) |
 
 - Пароль: `web3academy_cgs_2025`
 
-### Обе версии
+### Capital Growth
 
-В обеих версиях отображаются:
-- **HF до** — Health Factor до активных действий (ребалансировки)
-- **HF после** — Health Factor после добавления BTC в залог (с дельтой)
+Версии Capital Growth симулятора:
+- **Базовая** — HF до/после, колонки GM/CLMM/Reserve/Stability
+- **Расширенная** — + S/G и Y/L Ratio до/после действий с отклонениями
 
-### Расширенная версия
+### Hybrid Model
 
-В расширенной версии добавлены дополнительные колонки:
-- **S/G до** — Stability/Growth Ratio до ребалансировки
-- **S/G после** — Stability/Growth Ratio после действий (с дельтой)
-- **Y/L до** — Yield/Loan Ratio до ребалансировки
-- **Y/L после** — Yield/Loan Ratio после действий (с дельтой)
-
-Также добавлена **Памятка** с инструкциями:
-- Куда направлять DeFi доходы (CLMM комиссии, APY)
-- Куда направлять DCA (логика сравнения отклонений S/G и Y/L)
-
-Это позволяет анализировать эффект активного управления портфелем на каждом уровне падения.
+Особенности Hybrid модели:
+- Гибкий слайдер Growth/Stability (½ Stability → Yield)
+- CLMM ренж: **+10% / -25%** (шире чем в Capital Growth)
+- Debt направляется в CLMM для увеличения дохода
+- Показывает ожидаемый ежемесячный доход (CLMM APR + Stability APR)
+- Автоматическая ребалансировка при -25%, -45%, -60%
 
 ---
 
-*Версия документации: 1.3*
-*Дата: Декабрь 2025*
+## 12. Hybrid Model — Детали
+
+### Распределение
+
+При выборе Growth/Stability через слайдер:
+- **Growth Zone** — выбранный % (BTC в залоге)
+- **Yield Zone** — ½ от Stability + Debt → CLMM
+- **Stability Zone** — ½ от оставшегося (стейблкоины)
+
+Пример при слайдере 50/50:
+- Growth: 50%
+- Yield: 25% + Debt (займ)
+- Stability: 25%
+
+### Параметры по умолчанию
+
+| Параметр | Значение |
+|----------|----------|
+| Initial LTV | 30% |
+| Liquidation Threshold | 85% |
+| CLMM APR | 25% |
+| Stability APR | 10% |
+| CLMM ренж | +10% / -25% |
+
+### Действия при падении
+
+| Уровень | Действие |
+|---------|----------|
+| **-25%** | CLMM#1 → BTC → залог. Займ до 30% LTV. Stability + займ → CLMM#2 |
+| **-45%** | CLMM#2 → BTC → залог. Займ до 60% LTV. Займ → CLMM#3 |
+| **-60%** | CLMM#3 → BTC → залог. STOP |
+
+---
+
+*Версия документации: 2.0*
+*Дата: Январь 2026*

@@ -2,11 +2,19 @@
 
 ## Обзор проекта
 
-CGS (Capital Growth System) — симулятор DeFi-портфеля для стратегии накопления BTC через залоговое кредитование и LP-позиции. HTML-приложение с Chart.js для визуализации.
+CGS (Capital Growth System) — симулятор DeFi-портфеля для стратегий накопления BTC через залоговое кредитование и LP-позиции. HTML-приложение с Chart.js для визуализации.
+
+### Две модели
+
+| Модель | Цель | Файл |
+|--------|------|------|
+| **Capital Growth** | Максимальное накопление BTC | `capital_growth.html` |
+| **Hybrid Model** | Ежемесячный доход + рост капитала | `hybrid.html` |
 
 ## Технический стек
 
-- **Frontend:** Vanilla HTML/CSS/JS (single file)
+- **Frontend:** Vanilla HTML/CSS/JS
+- **Общие ресурсы:** `shared.css`, `shared.js`
 - **Графики:** Chart.js 4.4.1 (CDN)
 - **Деплой:** Vercel (статический хостинг)
 - **Защита:** Пароль в sessionStorage
@@ -15,48 +23,70 @@ CGS (Capital Growth System) — симулятор DeFi-портфеля для 
 
 ```
 cgs-simulation/
-├── index.html           # Базовая версия (v4.7) — для пользователей
-├── index_extended.html  # Расширенная версия (v4.8) — для исследований
-├── CLAUDE.md            # Этот файл (инструкции для разработки)
-└── README.md            # Документация проекта
+├── index.html              # Landing page — выбор модели
+├── capital_growth.html     # Capital Growth симуляция (бывший index.html)
+├── index_extended.html     # Capital Growth расширенная (+ S/G, Y/L)
+├── hybrid.html             # Hybrid Model симуляция
+├── shared.css              # Общие стили для всех страниц
+├── shared.js               # Общие утилиты (auth, форматирование, расчёты)
+├── CLAUDE.md               # Этот файл (инструкции для разработки)
+└── README.md               # Документация проекта
 ```
 
-### Различия версий
+### Описание файлов
 
-| Файл | Версия | Колонки | S/G и Y/L Ratio |
-|------|--------|---------|-----------------|
-| `index.html` | v4.8 | 14 | Нет |
-| `index_extended.html` | v4.9 | 18 | Да (до/после действий) |
+| Файл | Назначение |
+|------|------------|
+| `index.html` | Landing page с выбором модели |
+| `capital_growth.html` | Capital Growth — базовая версия (v4.8) |
+| `index_extended.html` | Capital Growth — расширенная (v4.9) с S/G и Y/L |
+| `hybrid.html` | Hybrid Model (v1.0) |
+| `shared.css` | Общие CSS стили |
+| `shared.js` | Утилиты: auth, fmt(), fmtUSD(), calcCLMM*, chart helpers |
 
-#### index.html (базовая)
-- Чистая таблица без дополнительных метрик S/G и Y/L
-- Для конечных пользователей
-- Колонки: Drop, BTC Price, Collateral BTC/$, Debt, HF до, HF после, LTV, GM/CLMM/Reserve/Stability $, BTC добавлено, Действия
+### Shared.js — ключевые функции
 
-#### index_extended.html (расширенная)
-- Добавлены колонки: S/G до, S/G после, Y/L до, Y/L после
-- Обе версии имеют HF до/после для анализа влияния действий на Health Factor
-- Лог показывает ratios до и после действий с дельтами
-- **Памятка:** Блок с инструкциями куда направлять DeFi доходы и DCA
-- Для исследований и анализа эффекта ребалансировки
+```javascript
+// Аутентификация
+checkPassword()           // Проверка пароля
+checkSavedAuth()          // Проверка sessionStorage
+
+// Форматирование
+fmt(n, d=2)               // Числа с точностью
+fmtUSD(n)                 // Долларовый формат
+fmtPct(n, d=1)            // Процентный формат
+
+// CLMM расчёты (Uniswap V3)
+calcCLMMBtc(usdc, entry, exit)     // BTC при выходе за ренж
+calcCLMMValue(val, entry, cur, lo, hi)  // Стоимость внутри ренжа
+
+// Health Factor / LTV
+calcHealthFactor(collateral, debt, liqThresh)
+calcLTV(debt, collateral)
+getHFClass(hf)            // CSS класс для HF
+getLTVClass(ltv)          // CSS класс для LTV
+
+// Графики
+createChart(canvasId, labels, config)
+createCharts(configs, labels)
+```
 
 ### Синхронизация изменений
 
-**ВАЖНО:** При изменении общей логики симуляции нужно обновлять ОБА файла!
+**ВАЖНО:** При изменении общей логики:
+1. Обновить `shared.js` если это общая функция
+2. Обновить все файлы, использующие эту функцию
+3. Обновить документацию (CLAUDE.md, README.md)
 
-Общие секции (синхронизировать):
-- `runSimulation()` — основной цикл симуляции
-- `calcCLMMBtc()` — расчёт BTC при выходе CLMM
-- `calcCLMMValue()` — стоимость CLMM в ренже
-- `renderCharts()` — графики
-- `renderSummary()` — итоговый блок
-- CSS стили
-- HTML структура параметров
+#### Capital Growth (синхронизировать между capital_growth.html и index_extended.html):
+- `runSimulation()` — основной цикл
+- GM и CLMM логика
+- `renderCharts()`, `renderSummary()`
 
-Различающиеся секции (НЕ синхронизировать):
-- `renderTable()` — разное количество колонок
-- Заголовок таблицы `<thead>`
-- Вывод ratios в лог (только в extended)
+#### Различающиеся секции (НЕ синхронизировать):
+- `renderTable()` — разные колонки
+- `<thead>` — разные заголовки
+- S/G и Y/L (только в extended)
 
 ---
 
@@ -132,6 +162,54 @@ const ylRatio = debt > 0 ? (gmValue + clmmValue + reserve) / debt : 0;
 Если изначально CLMM = 0%, то при -15%:
 - CLMM не открывается (её нет)
 - **Reserve → GM** (вместо открытия CLMM#2)
+
+---
+
+## Hybrid Model — Логика
+
+### Распределение
+
+При выборе Growth/Stability через слайдер:
+- **Growth Zone** — выбранный % (BTC в залоге)
+- **Yield Zone** — ½ от Stability + Debt → CLMM
+- **Stability Zone** — ½ от оставшегося (стейблкоины)
+
+```javascript
+const growthPct = sliderVal / 100;
+const totalStabilityPct = (100 - sliderVal) / 100;
+const yieldPct = totalStabilityPct / 2;
+const stabilityPct = totalStabilityPct / 2;
+
+// CLMM = yieldPct * portfolio + debt
+let clmmValue = total * yieldPct + debt;
+```
+
+### Параметры по умолчанию
+
+| Параметр | Значение |
+|----------|----------|
+| Initial LTV | 30% |
+| Liquidation Threshold | 85% |
+| CLMM APR | 25% |
+| Stability APR | 10% |
+| CLMM ренж | +10% / -25% |
+
+### Уровни падения и триггеры (Hybrid)
+
+| Уровень | Действие |
+|---------|----------|
+| 0% | Начальное состояние, CLMM#1 открыта |
+| **-25%** | CLMM#1 → BTC → залог. Займ до 30% LTV. Stability + займ → CLMM#2 |
+| **-45%** | CLMM#2 → BTC → залог. Займ до 60% LTV. Займ → CLMM#3 |
+| **-60%** | CLMM#3 → BTC → залог. STOP |
+
+### Расчёт дохода
+
+```javascript
+const monthlyClmm = clmmValue * clmmAPR / 12;
+const monthlyStability = stabilityZone * stabilityAPR / 12;
+const monthlyTotal = monthlyClmm + monthlyStability;
+```
 
 ---
 
@@ -301,8 +379,10 @@ CLMM можно открыть если:
 ## Контакты и ресурсы
 
 - Документация: см. README.md
-- Симулятор (базовый): https://cgs-simulation.vercel.app
-- Симулятор (extended): https://cgs-simulation.vercel.app/index_extended.html
+- Landing page: https://cgs-simulation.vercel.app
+- Capital Growth: https://cgs-simulation.vercel.app/capital_growth.html
+- Capital Growth Extended: https://cgs-simulation.vercel.app/index_extended.html
+- Hybrid Model: https://cgs-simulation.vercel.app/hybrid.html
 - Пароль: web3academy_cgs_2025
 
 ---
@@ -311,11 +391,14 @@ CLMM можно открыть если:
 
 | Версия | Файл | Описание |
 |--------|------|----------|
-| v4.8 | index.html | Базовая версия с HF до/после, без S/G и Y/L |
-| v4.9 | index_extended.html | Расширенная с HF и ratios до/после |
+| v1.0 | index.html | Landing page — выбор модели |
+| v4.8 | capital_growth.html | Capital Growth базовая |
+| v4.9 | index_extended.html | Capital Growth расширенная с S/G и Y/L |
+| v1.0 | hybrid.html | Hybrid Model |
 
 При обновлении:
 1. Инкрементировать версию в `<div class="version">vX.X</div>`
 2. Обновить таблицу версий выше
 3. Обновить документацию если изменилась логика
-4. **Синхронизировать общую логику между файлами**
+4. **Обновить shared.js если меняется общая функциональность**
+5. **Синхронизировать логику между capital_growth.html и index_extended.html**
