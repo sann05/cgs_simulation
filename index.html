@@ -26,10 +26,63 @@
 
 .model-cards {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  grid-template-columns: repeat(2, 1fr);
   gap: 30px;
   max-width: 800px;
   width: 100%;
+}
+
+.model-card-group {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.model-card.sub {
+  padding: 20px;
+  font-size: 0.85em;
+  opacity: 0.9;
+}
+
+.model-card.sub .icon {
+  font-size: 2em;
+  margin-bottom: 10px;
+}
+
+.model-card.sub h2 {
+  font-size: 1.1em;
+  margin-bottom: 10px;
+}
+
+.model-card.sub .description {
+  margin-bottom: 10px;
+}
+
+.model-card.sub .features {
+  display: none;
+}
+
+.model-card.sub .cta {
+  padding: 8px 16px;
+  font-size: 0.85em;
+}
+
+.experimental-note {
+  font-size: 0.75em;
+  color: #888;
+  font-style: italic;
+  margin-top: 5px;
+}
+
+.model-card.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.model-card .cta.disabled {
+  background: #444;
+  color: #888;
 }
 
 .model-card {
@@ -65,6 +118,24 @@
 .model-card.hybrid:hover {
   border-color: #9966ff;
   background: linear-gradient(135deg, #1a1a3a, #2a2a4a);
+}
+
+.model-card.dynamic {
+  border-color: #00d4aa55;
+}
+
+.model-card.dynamic:hover {
+  border-color: #00d4aa;
+  background: linear-gradient(135deg, #1a2a2a, #2a3a3a);
+}
+
+.model-card.dynamic h2 {
+  color: #00d4aa;
+}
+
+.model-card.dynamic .cta {
+  background: linear-gradient(90deg, #00d4aa, #00a080);
+  color: #fff;
 }
 
 .model-card .icon {
@@ -143,6 +214,7 @@
 <p class="subtitle">Выберите модель для симуляции падения рынка</p>
 
 <div class="model-cards">
+<div class="model-card-group">
 <a href="capital_growth.html" class="model-card growth">
 <div class="icon">🚀</div>
 <h2>Capital Growth</h2>
@@ -158,6 +230,18 @@
 <span class="cta">Открыть →</span>
 </a>
 
+<a href="capital_growth_dynamic.html" class="model-card dynamic sub">
+<div class="icon">🧪</div>
+<h2>Capital Growth (модифицированная)</h2>
+<div class="description">
+Модифицированная версия Capital Growth с триггерами на основе Health Factor.
+</div>
+<div class="experimental-note">⚠️ Не официальная стратегия — экспериментальная модификация</div>
+<span class="cta">Открыть →</span>
+</a>
+</div>
+
+<div class="model-card-group">
 <a href="hybrid.html" class="model-card hybrid">
 <div class="icon">⚖️</div>
 <h2>Hybrid Model</h2>
@@ -172,6 +256,17 @@
 </ul>
 <span class="cta">Открыть →</span>
 </a>
+
+<div class="model-card hybrid sub disabled">
+<div class="icon">🔧</div>
+<h2>Hybrid Dynamic (в разработке)</h2>
+<div class="description">
+Модифицированная версия Hybrid с экспериментальными механиками.
+</div>
+<div class="experimental-note">🚧 В разработке — скоро будет доступно</div>
+<span class="cta disabled">Скоро →</span>
+</div>
+</div>
 </div>
 
 </div>
