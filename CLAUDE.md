@@ -4,11 +4,12 @@
 
 CGS (Capital Growth System) — симулятор DeFi-портфеля для стратегий накопления BTC через залоговое кредитование и LP-позиции. HTML-приложение с Chart.js для визуализации.
 
-### Две модели
+### Модели
 
 | Модель | Цель | Файл |
 |--------|------|------|
 | **Capital Growth** | Максимальное накопление BTC | `capital_growth.html` |
+| **Capital Growth Dynamic** | Накопление BTC (HF-триггеры) | `capital_growth_dynamic.html` |
 | **Hybrid Model** | Ежемесячный доход + рост капитала | `hybrid.html` |
 
 ### Quiz
@@ -29,15 +30,16 @@ CGS (Capital Growth System) — симулятор DeFi-портфеля для 
 
 ```
 cgs-simulation/
-├── index.html              # Landing page — выбор модели
-├── capital_growth.html     # Capital Growth симуляция (бывший index.html)
-├── index_extended.html     # Capital Growth расширенная (+ S/G, Y/L)
-├── hybrid.html             # Hybrid Model симуляция
-├── quiz.html               # Quiz — тренировка принятия решений
-├── shared.css              # Общие стили для всех страниц
-├── shared.js               # Общие утилиты (auth, форматирование, расчёты)
-├── CLAUDE.md               # Этот файл (инструкции для разработки)
-└── README.md               # Документация проекта
+├── index.html                    # Landing page — выбор модели
+├── capital_growth.html           # Capital Growth симуляция
+├── capital_growth_dynamic.html   # Capital Growth Dynamic (HF-триггеры)
+├── index_extended.html           # Capital Growth расширенная (+ S/G, Y/L)
+├── hybrid.html                   # Hybrid Model симуляция
+├── quiz.html                     # Quiz — тренировка принятия решений
+├── shared.css                    # Общие стили для всех страниц
+├── shared.js                     # Общие утилиты (auth, форматирование, расчёты)
+├── CLAUDE.md                     # Этот файл (инструкции для разработки)
+└── README.md                     # Документация проекта
 ```
 
 ### Описание файлов
@@ -46,6 +48,7 @@ cgs-simulation/
 |------|------------|
 | `index.html` | Landing page с выбором модели |
 | `capital_growth.html` | Capital Growth — базовая версия (v4.8) |
+| `capital_growth_dynamic.html` | Capital Growth Dynamic — HF-триггеры (v1.0) |
 | `index_extended.html` | Capital Growth — расширенная (v4.9) с S/G и Y/L |
 | `hybrid.html` | Hybrid Model (v1.0) |
 | `quiz.html` | Quiz — тренировка принятия решений (v1.0) |
@@ -345,25 +348,58 @@ else → Stability Zone
 
 ---
 
+## Capital Growth Dynamic — HF-триггеры
+
+Экспериментальная модификация Capital Growth с триггерами на основе Health Factor.
+
+### Параметры
+
+| Параметр | Значение по умолчанию |
+|----------|----------------------|
+| HF Trigger | 1.45 |
+| HF Target | 1.70 |
+| CLMM ренж | -15% / +5% |
+| Yield Zone | 40% GM, 30% CLMM, 30% Reserve |
+
+### Логика триггеров
+
+```javascript
+// Проверка триггера
+if (hfBefore < hfTrigger) {
+  // Case 1: CLMM активен и вышел из ренжа
+  if (clmmActive && btcPrice <= clmmLowerPrice) {
+    // CLMM → BTC в залог
+    // Reserve → CLMM#2 (если первый триггер)
+  }
+  // Case 2: CLMM активен, но ещё в ренже
+  else if (clmmActive && btcPrice > clmmLowerPrice) {
+    // Ждём выхода CLMM
+  }
+  // Case 3: CLMM не активен — продаём GM
+  else {
+    // GM → BTC в залог + USDC для новых GM
+    // + Stability Zone подлив (по порядку: 1/3, 1/2, всё)
+  }
+}
+```
+
+### Последовательность триггеров
+
+1. **Триггер #1:** CLMM#1 → BTC, Reserve → CLMM#2
+2. **Триггер #2:** CLMM#2 → BTC, CLMM STOP
+3. **Триггер #3+:** GM продажа + 1/3 Stability → GM
+4. **Триггер #4:** GM продажа + 1/2 оставшейся Stability → GM
+5. **Триггер #5:** GM продажа + вся оставшаяся Stability → GM
+
+### Преимущества HF-триггеров
+
+- **Учитывают доходы с DeFi** — прибыль от CLMM/GM реинвестируется в залог
+- **Объективная метрика** — HF показывает реальное здоровье позиции
+- **Учитывают DCA** — регулярные пополнения могут отодвигать триггеры
+
+---
+
 ## Планы будущей разработки
-
-### Динамический режим (Dynamic Mode)
-Триггеры на основе HF вместо % падения BTC:
-
-| HF | Режим | Описание |
-|----|-------|----------|
-| < 1.2 | EMERGENCY | Всё → залог |
-| 1.2-1.5 | ЗАЩИТА | Только GM, без CLMM |
-| 1.5-1.7 | НОРМА | GM активен |
-| > 1.7 | РОСТ | Можно открыть CLMM |
-
-### Условия перезапуска CLMM
-```
-CLMM можно открыть если:
-  HF > 1.7          AND
-  Reserve > 0       AND
-  Y/L > 0.8
-```
 
 ### Калькулятор DCA
 Добавить интерактивный блок для расчёта куда направить DCA:
@@ -447,6 +483,7 @@ Quiz для проверки понимания стратегии Capital Growt
 - Документация: см. README.md
 - Landing page: https://cgs-simulation.vercel.app
 - Capital Growth: https://cgs-simulation.vercel.app/capital_growth.html
+- Capital Growth Dynamic: https://cgs-simulation.vercel.app/capital_growth_dynamic.html
 - Capital Growth Extended: https://cgs-simulation.vercel.app/index_extended.html
 - Hybrid Model: https://cgs-simulation.vercel.app/hybrid.html
 - Quiz: https://cgs-simulation.vercel.app/quiz.html
@@ -460,6 +497,7 @@ Quiz для проверки понимания стратегии Capital Growt
 |--------|------|----------|
 | v1.0 | index.html | Landing page — выбор модели |
 | v4.8 | capital_growth.html | Capital Growth базовая |
+| v1.0 | capital_growth_dynamic.html | Capital Growth Dynamic (HF-триггеры) |
 | v4.9 | index_extended.html | Capital Growth расширенная с S/G и Y/L |
 | v1.0 | hybrid.html | Hybrid Model |
 | v1.0 | quiz.html | Quiz — тренировка принятия решений |

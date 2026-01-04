@@ -285,11 +285,12 @@ $$\text{Отклонение Y/L} = \frac{|\text{текущий} - 1.0|}{1.0}$$
 
 ## 11. Симулятор
 
-### Две модели
+### Модели
 
 | Модель | Цель | Описание |
 |--------|------|----------|
 | **Capital Growth** | Накопление BTC | Агрессивная стратегия для максимального накопления базового актива |
+| **Capital Growth Dynamic** | Накопление BTC (HF-триггеры) | Модифицированная версия с триггерами на основе Health Factor |
 | **Hybrid Model** | Доход + Рост | Сбалансированный подход: ежемесячный доход и участие в росте рынка |
 
 ### Quiz
@@ -302,15 +303,16 @@ $$\text{Отклонение Y/L} = \frac{|\text{текущий} - 1.0|}{1.0}$$
 
 ```
 cgs-simulation/
-├── index.html              # Landing page — выбор модели
-├── capital_growth.html     # Capital Growth симуляция
-├── index_extended.html     # Capital Growth расширенная (+ S/G, Y/L)
-├── hybrid.html             # Hybrid Model симуляция
-├── quiz.html               # Quiz — тренировка принятия решений
-├── shared.css              # Общие стили
-├── shared.js               # Общие утилиты
-├── CLAUDE.md               # Инструкции для разработки
-└── README.md               # Документация
+├── index.html                    # Landing page — выбор модели
+├── capital_growth.html           # Capital Growth симуляция
+├── capital_growth_dynamic.html   # Capital Growth Dynamic (HF-триггеры)
+├── index_extended.html           # Capital Growth расширенная (+ S/G, Y/L)
+├── hybrid.html                   # Hybrid Model симуляция
+├── quiz.html                     # Quiz — тренировка принятия решений
+├── shared.css                    # Общие стили
+├── shared.js                     # Общие утилиты
+├── CLAUDE.md                     # Инструкции для разработки
+└── README.md                     # Документация
 ```
 
 ### Ссылки
@@ -319,6 +321,7 @@ cgs-simulation/
 |----------|--------|
 | Выбор модели | [index.html](https://cgs-simulation.vercel.app) |
 | Capital Growth | [capital_growth.html](https://cgs-simulation.vercel.app/capital_growth.html) |
+| Capital Growth Dynamic | [capital_growth_dynamic.html](https://cgs-simulation.vercel.app/capital_growth_dynamic.html) |
 | Capital Growth Extended | [index_extended.html](https://cgs-simulation.vercel.app/index_extended.html) |
 | Hybrid Model | [hybrid.html](https://cgs-simulation.vercel.app/hybrid.html) |
 | Quiz | [quiz.html](https://cgs-simulation.vercel.app/quiz.html) |
@@ -330,6 +333,25 @@ cgs-simulation/
 Версии Capital Growth симулятора:
 - **Базовая** — HF до/после, колонки GM/CLMM/Reserve/Stability
 - **Расширенная** — + S/G и Y/L Ratio до/после действий с отклонениями
+
+### Capital Growth Dynamic
+
+Экспериментальная модификация Capital Growth с триггерами на основе Health Factor:
+
+**Отличия от базовой версии:**
+- Триггеры срабатывают при HF < 1.45 (вместо фиксированных уровней % падения BTC)
+- Yield Zone включает CLMM позиции (40% GM, 30% CLMM, 30% Reserve)
+- CLMM ренж: -15% / +5% от точки входа
+
+**Последовательность триггеров:**
+1. HF < 1.45 + CLMM вышел из ренжа → CLMM#1 → BTC в залог, Reserve → CLMM#2
+2. HF < 1.45 + CLMM#2 вышел → CLMM#2 → BTC в залог, CLMM STOP
+3. HF < 1.45, нет CLMM → Продажа GM с подливом из Stability Zone
+
+**Преимущества HF-триггеров:**
+- Учитывают доходы с DeFi (реинвестирование в залог)
+- Объективная метрика здоровья позиции
+- Регулярные DCA-пополнения могут отодвигать триггеры
 
 ### Hybrid Model
 
