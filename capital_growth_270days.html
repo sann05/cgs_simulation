@@ -1,0 +1,784 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<title>CGS — Capital Growth 270 Days</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<link rel="stylesheet" href="shared.css">
+<style>
+.trigger-info {
+  background: linear-gradient(135deg, #2a1a3a, #1a2a4a);
+  border: 2px solid #9966ff;
+  padding: 15px 20px;
+  border-radius: 12px;
+  margin: 15px 0;
+  font-size: 0.9em;
+}
+.trigger-info h4 {
+  color: #9966ff;
+  margin-bottom: 10px;
+}
+.trigger-info ul {
+  margin-left: 20px;
+}
+.trigger-info li {
+  margin: 5px 0;
+}
+.trigger-info .highlight {
+  color: #f7931a;
+  font-weight: bold;
+}
+.info-block {
+  background: linear-gradient(135deg, #1a2a4a, #2a1a5a);
+  border: 2px solid #00d4aa44;
+  padding: 15px 20px;
+  border-radius: 12px;
+  margin: 15px 0;
+}
+.info-block p {
+  margin: 8px 0;
+  color: #ccc;
+  line-height: 1.5;
+}
+.table-wrap {
+  overflow-x: auto;
+  margin-bottom: 20px;
+}
+table {
+  width: 100%;
+  border-collapse: collapse;
+  background: #1a1a3a;
+  border-radius: 8px;
+  overflow: hidden;
+  font-size: 0.7em;
+}
+th {
+  background: #2d2d6a;
+  color: #f7931a;
+  padding: 6px 3px;
+  text-align: center;
+  font-weight: 600;
+  white-space: nowrap;
+}
+td {
+  padding: 5px 3px;
+  text-align: center;
+  border-bottom: 1px solid #333;
+}
+tr:nth-child(even) { background: #1e1e4a; }
+tr:hover { background: #2a2a6a; }
+tr.trigger-row { background: linear-gradient(90deg, #3a2a1a, #2a1a3a) !important; }
+tr.trigger-row:hover { background: linear-gradient(90deg, #4a3a2a, #3a2a4a) !important; }
+.action-cell {
+  text-align: left !important;
+  font-size: 0.85em;
+  max-width: 220px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.positive { color: #00ff88; }
+.warning { color: #ffaa00; }
+.danger { color: #ff4444; }
+.neutral { color: #888; }
+.yield-inputs {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 15px;
+  margin: 15px 0;
+  padding: 15px;
+  background: #1a1a4a;
+  border-radius: 8px;
+}
+.conclusions {
+  background: linear-gradient(135deg, #1a2a3a, #2a3a4a);
+  border: 2px solid #00d4aa44;
+  border-radius: 12px;
+  padding: 25px;
+  margin: 30px 0;
+}
+.conclusions h2 {
+  color: #00d4aa;
+  margin-bottom: 20px;
+}
+.conclusions h4 {
+  color: #f7931a;
+  margin: 20px 0 10px 0;
+}
+.conclusions p {
+  color: #ccc;
+  line-height: 1.6;
+}
+.conclusions ul, .conclusions ol {
+  margin-left: 20px;
+  color: #aaa;
+}
+.conclusions li {
+  margin: 8px 0;
+  line-height: 1.5;
+}
+.conclusions li b {
+  color: #fff;
+}
+</style>
+</head>
+<body>
+<div class="password-overlay" id="passwordOverlay">
+<div class="password-box">
+<h2>🔒 Capital Growth 270 Days</h2>
+<input type="password" id="passwordInput" placeholder="Введите пароль">
+<button onclick="checkPassword()">Войти</button>
+<div class="error" id="passwordError">Неверный пароль</div>
+</div>
+</div>
+
+<div class="container content-hidden" id="mainContent">
+<h1>📅 Capital Growth Simulation — 270 Days (-76%)</h1>
+
+<div class="disclaimer">
+⚡ Симуляция показывает <b>только защитную механику</b> при падении рынка.<br>
+Без учёта доходности DeFi-позиций и регулярных DCA-инвестиций.
+</div>
+
+<div class="info-block">
+<p>📊 Симуляция постепенного падения BTC на 76% за 270 дней (ежедневно -0.527%)</p>
+<p>🎯 Триггеры на основе Health Factor (HF < 1.45)</p>
+</div>
+
+<div class="trigger-info">
+<h4>🎯 Логика триггеров (HF &lt; 1.45)</h4>
+<ul>
+<li>При <span class="highlight">HF &lt; 1.45</span>: CLMM выходит по нижней границе (-15%)</li>
+<li><b>Триггер #1:</b> CLMM#1 → BTC в залог, Reserve → открыть CLMM#2</li>
+<li><b>Триггер #2:</b> CLMM#2 → BTC в залог (новую не открываем)</li>
+<li><b>Триггер #3:</b> Продаём GM, 1/3 Stability + USDC → покупка GM</li>
+<li><b>Триггер #4:</b> Продаём GM, 1/2 Stability + USDC → покупка GM</li>
+<li><b>Триггер #5:</b> Продаём GM, вся Stability + USDC → покупка GM</li>
+<li><b>Триггер #6+:</b> Только продаём GM</li>
+</ul>
+</div>
+
+<h2>⚙️ Параметры</h2>
+<div class="params-table">
+<table class="input-table">
+<tr>
+<td><label>Общий портфель ($)</label><input type="number" id="totalPortfolio" value="100000"></td>
+<td><label>Цена BTC ($)</label><input type="number" id="btcPrice" value="100000"></td>
+</tr>
+<tr>
+<td><label>Initial LTV (%)</label><input type="number" id="initLTV" value="50"></td>
+<td><label>Liq Threshold (%)</label><input type="number" id="liqThreshold" value="85"></td>
+</tr>
+<tr>
+<td><label>HF Trigger (ниже)</label><input type="number" id="hfTrigger" value="1.45" step="0.05"></td>
+<td><label>HF Target (поднять до)</label><input type="number" id="hfTarget" value="1.7" step="0.1"></td>
+</tr>
+</table>
+
+<div class="slider-group">
+<div class="slider-header">
+<span>Growth Zone: <b id="growthVal">60%</b></span>
+<span>Stability Zone: <b id="stabilityVal">40%</b></span>
+</div>
+<input type="range" id="growthSlider" min="0" max="100" value="40">
+<div class="slider-labels"><span>0%</span><span>50%</span><span>100%</span></div>
+</div>
+
+<div style="color:#00d4aa;font-size:0.95em;margin:15px 0">Yield Zone (% от займа):</div>
+<div class="yield-inputs">
+<div class="yield-input">
+<label for="gmPct">GM Pool %</label>
+<input type="number" id="gmPct" value="40" min="0" max="100">
+</div>
+<div class="yield-input">
+<label for="clmmPct">CLMM %</label>
+<input type="number" id="clmmPct" value="30" min="0" max="100">
+</div>
+<div class="yield-input">
+<label for="reservePct">Reserve %</label>
+<input type="number" id="reservePct" value="30" min="0" max="100">
+</div>
+</div>
+<div class="yield-total" id="yieldTotal">Сумма: 100% ✓</div>
+<div style="color:#888;font-size:0.85em;margin-top:10px">CLMM диапазон: -15% / +5% от цены открытия</div>
+
+<div style="color:#00d4aa;font-size:0.95em;margin:15px 0">DCA Параметры:</div>
+<div class="yield-inputs">
+<div class="yield-input">
+<label for="dcaInterval">DCA Interval (дней)</label>
+<input type="number" id="dcaInterval" value="30" min="1" max="270">
+</div>
+<div class="yield-input">
+<label for="dcaAmount">DCA Amount ($)</label>
+<input type="number" id="dcaAmount" value="1000" min="0">
+</div>
+<div class="yield-input">
+<label for="targetYLRatio">Target Y/L Ratio</label>
+<input type="number" id="targetYLRatio" value="1.0" step="0.1" min="0">
+</div>
+</div>
+<div style="color:#888;font-size:0.85em;margin-top:10px">
+Target S/G берется из слайдера Growth/Stability
+</div>
+</div>
+
+<button id="runBtn">🚀 Запустить симуляцию</button>
+
+<h2>📋 Таблица состояний (270 дней, ежедневно -0.527%)</h2>
+<div class="table-wrap">
+<table id="resultsTable">
+<thead><tr>
+<th>День</th>
+<th>Drop (init)</th><th>Drop (last)</th><th>Drop (trig)</th><th>BTC $</th>
+<th>HF до</th><th>HF после</th>
+<th>LTV %</th><th>Collateral BTC</th>
+<th>GM $</th><th>CLMM $</th><th>CLMM#</th>
+<th>Reserve $</th><th>Stability $</th>
+<th>BTC +</th>
+<th>Y/L</th>
+<th>S/G</th>
+<th>Действие</th>
+</tr></thead>
+<tbody></tbody>
+</table>
+</div>
+
+<h2>📝 Лог триггеров</h2>
+<div class="log" id="logContainer"></div>
+
+<h2>📈 Графики</h2>
+<div class="charts">
+<div class="chart-box"><canvas id="hfChart"></canvas></div>
+<div class="chart-box"><canvas id="ltvChart"></canvas></div>
+<div class="chart-box"><canvas id="collateralChart"></canvas></div>
+<div class="chart-box"><canvas id="yieldChart"></canvas></div>
+</div>
+
+<div class="summary" id="summary"></div>
+
+<div class="conclusions">
+<h2>📝 Выводы</h2>
+
+<h4>Почему триггеры на основе Health Factor лучше?</h4>
+<p>
+Триггеры на основе HF более надёжны, так как учитывают реальное состояние позиции:
+</p>
+<ul>
+<li><b>Учитывают доходы с DeFi</b> — прибыль от CLMM/GM реинвестируется в залог</li>
+<li><b>Объективная метрика</b> — HF показывает реальное здоровье позиции, в отличие от "просадки BTC", которую непонятно откуда отсчитывать</li>
+<li><b>Учитывают DCA</b> — регулярные пополнения могут отодвигать триггеры</li>
+</ul>
+
+<h4>Логика распределения DCA</h4>
+<p>Приоритеты при получении DCA-инвестиций:</p>
+<ol>
+<li><b>Stability Zone</b> — если нужно восстановить пропорцию Growth/Stability</li>
+<li><b>Yield Zone</b> — если Yield Zone мала по сравнению с долгом</li>
+<li><b>Growth Zone</b> — если всё в норме, DCA идёт на покупку BTC → в залог → последующее распределение через новый займ</li>
+</ol>
+
+<h4>Особенности 270-дневной симуляции</h4>
+<p>
+Эта версия симулирует реалистичное постепенное падение рынка:
+</p>
+<ul>
+<li><b>Ежедневное падение -0.527%</b> — компаундное снижение, а не резкие скачки</li>
+<li><b>270 дней</b> — реалистичный срок медвежьего рынка (около 9 месяцев)</li>
+<li><b>Итоговое падение -76%</b> — от $100k до $24k, как в прошлых циклах BTC</li>
+<li><b>Триггеры HF</b> — срабатывают по мере ухудшения позиции, а не по жёстким уровням цены</li>
+</ul>
+</div>
+
+<div class="version">v1.1 (DCA)</div>
+</div>
+
+<script src="shared.js"></script>
+<script>
+
+document.getElementById('growthSlider').addEventListener('input', function(e) {
+  document.getElementById('growthVal').textContent = (100 - e.target.value) + '%';
+  document.getElementById('stabilityVal').textContent = e.target.value + '%';
+});
+
+['gmPct', 'clmmPct', 'reservePct'].forEach(id => {
+  document.getElementById(id).addEventListener('input', updateYieldTotal);
+});
+
+function updateYieldTotal() {
+  const gm = +document.getElementById('gmPct').value || 0;
+  const clmm = +document.getElementById('clmmPct').value || 0;
+  const res = +document.getElementById('reservePct').value || 0;
+  const total = gm + clmm + res;
+  const el = document.getElementById('yieldTotal');
+  el.textContent = 'Сумма: ' + total + '% ' + (total === 100 ? '✓' : '✗');
+  el.className = 'yield-total ' + (total === 100 ? 'valid' : 'invalid');
+}
+
+document.getElementById('runBtn').addEventListener('click', runSimulation);
+
+function onAuthSuccess() {
+  runSimulation();
+}
+
+function runSimulation() {
+  const gmPctVal = +document.getElementById('gmPct').value || 0;
+  const clmmPctVal = +document.getElementById('clmmPct').value || 0;
+  const reservePctVal = +document.getElementById('reservePct').value || 0;
+  const yieldTotal = gmPctVal + clmmPctVal + reservePctVal;
+
+  if (yieldTotal !== 100) {
+    alert('⚠️ Сумма Yield Zone должна быть 100%!\n\nСейчас: ' + yieldTotal + '%');
+    return;
+  }
+
+  // Parameters
+  const total = +document.getElementById('totalPortfolio').value;
+  const sliderVal = +document.getElementById('growthSlider').value;
+  const growthPct = (100 - sliderVal) / 100;
+  const stabilityPct = sliderVal / 100;
+  const btcStart = +document.getElementById('btcPrice').value;
+  const initLTV = +document.getElementById('initLTV').value / 100;
+  const liqThresh = +document.getElementById('liqThreshold').value / 100;
+  const hfTrigger = +document.getElementById('hfTrigger').value;
+  const hfTarget = +document.getElementById('hfTarget').value;
+  const gmPct = gmPctVal / 100;
+  const clmmPct = clmmPctVal / 100;
+  const reservePct = reservePctVal / 100;
+
+  // === DCA Parameters ===
+  const dcaInterval = +document.getElementById('dcaInterval').value || 30;
+  const dcaAmount = +document.getElementById('dcaAmount').value || 0;
+  const targetYLRatio = +document.getElementById('targetYLRatio').value || 1.0;
+  // Target S/G берем из начального слайдера (stabilityPct = Stability Zone %)
+  const targetSGRatio = stabilityPct;
+
+  // CLMM range parameters
+  const CLMM_LOWER = 0.85; // -15%
+  const CLMM_UPPER = 1.05; // +5%
+
+  // 270 days simulation parameters
+  const TOTAL_DAYS = 270;
+  const DAILY_MULTIPLIER = 0.9947283281580744; // Results in -76% over 270 days
+
+  // Initial state
+  const growthZone = total * growthPct;
+  let stabilityZone = total * stabilityPct;
+  const initialStability = stabilityZone;
+
+  let collateralBTC = growthZone / btcStart;
+  const debt = growthZone * initLTV;
+
+  let gmValue = debt * gmPct;
+  let reserve = debt * reservePct;
+
+  // CLMM state
+  let clmmInitialValue = debt * clmmPct; // Value when position was opened
+  let clmmValue = clmmInitialValue;
+  let clmmEntryPrice = btcStart;
+  let clmmLowerPrice = btcStart * CLMM_LOWER;
+  let clmmUpperPrice = btcStart * CLMM_UPPER;
+  let clmmNumber = clmmPct > 0 ? 1 : 0; // CLMM#1 if we have CLMM allocation
+  let clmmActive = clmmPct > 0;
+
+  // Calculate CLMM BTC when exiting at lower bound
+  // BTC = USDC / sqrt(P_entry * P_exit)
+  function calcCLMMBtcAtExit(usdcValue, entryPrice, exitPrice) {
+    return usdcValue / Math.sqrt(entryPrice * exitPrice);
+  }
+
+  // Calculate CLMM value at current price
+  function calcCLMMValueAtPrice(initialValue, entryPrice, currentPrice, lowerPrice, upperPrice) {
+    if (currentPrice <= lowerPrice) {
+      // Fully converted to BTC
+      const btcAmount = initialValue / Math.sqrt(entryPrice * lowerPrice);
+      return btcAmount * currentPrice;
+    } else if (currentPrice >= entryPrice) {
+      // At or above entry - value is approximately initial value
+      return initialValue;
+    } else {
+      // Between lower bound and entry price - linear interpolation
+      const btcAtLower = initialValue / Math.sqrt(entryPrice * lowerPrice);
+      const valueAtLower = btcAtLower * lowerPrice;
+      const ratio = (currentPrice - lowerPrice) / (entryPrice - lowerPrice);
+      return valueAtLower + (initialValue - valueAtLower) * ratio;
+    }
+  }
+
+  const results = [];
+  let logHTML = '';
+  let triggerCount = 0;
+  let prevBtcPrice = btcStart;
+  let prevGmValue = gmValue;
+  let lastTriggerPrice = btcStart;
+
+  // Y/L Ratio: (GM + CLMM + Reserve) / Debt
+  function calcYL(gm, clmm, res, debt) {
+    return debt > 0 ? (gm + clmm + res) / debt : 0;
+  }
+
+  // Simulate 270 days with daily price decline
+  for (let day = 0; day <= TOTAL_DAYS; day++) {
+    const btcPrice = btcStart * Math.pow(DAILY_MULTIPLIER, day);
+    const dropFromInitial = ((btcPrice - btcStart) / btcStart) * 100;
+
+    // Calculate drop from previous day
+    const prevPrice = day > 0 ? btcStart * Math.pow(DAILY_MULTIPLIER, day - 1) : btcStart;
+    const dropFromLast = day === 0 ? 0 : ((btcPrice - prevPrice) / prevPrice) * 100;
+
+    const dropFromTrigger = ((btcPrice - lastTriggerPrice) / lastTriggerPrice) * 100;
+
+    let btcAdded = 0;
+    let actions = [];
+    let isTrigger = false;
+
+    // Recalculate GM value based on price change (AMM formula)
+    if (day > 0 && prevGmValue > 0) {
+      const gmRatio = Math.sqrt(btcPrice / prevBtcPrice);
+      gmValue = prevGmValue * gmRatio;
+    }
+
+    // Recalculate CLMM value if active
+    if (clmmActive && clmmInitialValue > 0) {
+      clmmValue = calcCLMMValueAtPrice(clmmInitialValue, clmmEntryPrice, btcPrice, clmmLowerPrice, clmmUpperPrice);
+    }
+
+    // ========== DCA LOGIC ==========
+    let dcaReceived = 0;
+
+    // ВАЖНО: Вычисляем S/G и Y/L для ВСЕХ дней (для отображения в таблице)
+    const collateralValCurrent = collateralBTC * btcPrice;
+    const totalPortfolioCurrent = stabilityZone + collateralValCurrent;
+    const sgRatioCurrent = totalPortfolioCurrent > 0 ? stabilityZone / totalPortfolioCurrent : 0;
+
+    const yieldZoneTotalCurrent = gmValue + clmmValue + reserve;
+    const ylRatioCurrent = debt > 0 ? yieldZoneTotalCurrent / debt : 0;
+
+    // Проверка: день DCA?
+    if (day > 0 && dcaAmount > 0 && day % dcaInterval === 0) {
+      dcaReceived = dcaAmount;
+
+      // Приоритет 1: Проверяем S/G Ratio
+      if (sgRatioCurrent < targetSGRatio) {
+        // Перекос в Growth (недостаточно Stability) → добавляем в Stability
+        stabilityZone += dcaAmount;
+        actions.push('DCA ' + fmtUSD(dcaAmount) + '→Stability (S/G=' + fmt(sgRatioCurrent, 2) + ' < ' + fmt(targetSGRatio, 2) + ')');
+      }
+      // Приоритет 2: Проверяем Y/L Ratio
+      else if (ylRatioCurrent < 1.0) {
+        // Yield Zone меньше долга → добавляем в GM Pool
+        gmValue += dcaAmount;
+        actions.push('DCA ' + fmtUSD(dcaAmount) + '→GM Pool (Y/L=' + fmt(ylRatioCurrent, 2) + ' < 1.0)');
+      }
+      // Приоритет 3: Все в порядке
+      else {
+        // S/G и Y/L в норме → покупаем BTC и добавляем в залог
+        const btcBought = dcaAmount / btcPrice;
+        collateralBTC += btcBought;
+        actions.push('DCA ' + fmtUSD(dcaAmount) + '→BTC в залог (+' + fmt(btcBought, 6) + ' BTC)');
+      }
+    }
+    // ========== END DCA LOGIC ==========
+
+    // Calculate metrics BEFORE any actions
+    const collateralValBefore = collateralBTC * btcPrice;
+    const hfBefore = (collateralValBefore * liqThresh) / debt;
+    const ylBefore = calcYL(gmValue, clmmValue, reserve, debt);
+
+    // Check if CLMM has exited range (price at or below lower bound)
+    const clmmExited = clmmActive && btcPrice <= clmmLowerPrice;
+
+    // Check trigger: HF < trigger threshold
+    if (day > 0 && hfBefore < hfTrigger) {
+
+      // Case 1: CLMM is active and has exited - process CLMM exit
+      if (clmmActive && clmmExited) {
+        isTrigger = true;
+        triggerCount++;
+        logHTML += '<div class="log-level"><h4>🔴 Триггер #' + triggerCount + ' | День: ' + day + ' | Drop: ' + fmt(dropFromInitial, 1) + '% | BTC: ' + fmtUSD(btcPrice) + ' | HF: ' + fmt(hfBefore, 2) + '</h4>';
+
+        // CLMM exited at lower bound - convert to BTC using initial value
+        const clmmBtc = calcCLMMBtcAtExit(clmmInitialValue, clmmEntryPrice, clmmLowerPrice);
+        btcAdded += clmmBtc;
+
+        logHTML += '<div class="log-step">1. CLMM#' + clmmNumber + ' вышла по нижней границе</div>';
+        logHTML += '<div class="log-calc">• CLMM (' + fmtUSD(clmmInitialValue) + ') → BTC: ' + fmt(clmmBtc, 6) + ' BTC в залог</div>';
+        actions.push('CLMM#' + clmmNumber + '→' + fmt(clmmBtc, 4) + ' BTC');
+
+        clmmValue = 0;
+        clmmInitialValue = 0;
+        clmmActive = false;
+
+        if (triggerCount === 1 && reserve > 0) {
+          // Open CLMM#2 from Reserve
+          clmmInitialValue = reserve;
+          clmmValue = reserve;
+          clmmEntryPrice = btcPrice;
+          clmmLowerPrice = btcPrice * CLMM_LOWER;
+          clmmUpperPrice = btcPrice * CLMM_UPPER;
+          clmmNumber = 2;
+          clmmActive = true;
+
+          logHTML += '<div class="log-step">2. Reserve → CLMM#2: ' + fmtUSD(reserve) + '</div>';
+          logHTML += '<div class="log-calc">• Диапазон: ' + fmtUSD(clmmLowerPrice) + ' — ' + fmtUSD(clmmUpperPrice) + '</div>';
+          actions.push('Reserve→CLMM#2');
+
+          reserve = 0;
+        } else if (triggerCount === 2) {
+          logHTML += '<div class="log-step" style="color:#ffaa00">2. Новую CLMM не открываем (Reserve исчерпан)</div>';
+          actions.push('CLMM STOP');
+        }
+
+        // Update collateral
+        collateralBTC += btcAdded;
+        logHTML += '<div class="log-step">Результат: Collateral +' + fmt(btcAdded, 6) + ' BTC → ' + fmt(collateralBTC, 4) + ' BTC</div>';
+        logHTML += '</div>';
+        lastTriggerPrice = btcPrice;
+      }
+      // Case 2: CLMM is active but hasn't exited yet - wait
+      else if (clmmActive && !clmmExited) {
+        // HF is low but CLMM hasn't hit lower bound yet - just wait
+        actions.push('HF низкий, ждём CLMM');
+      }
+      // Case 3: CLMM is not active (already processed) - sell GM
+      else if (!clmmActive) {
+        isTrigger = true;
+        triggerCount++;
+        logHTML += '<div class="log-level"><h4>🔴 Триггер #' + triggerCount + ' | День: ' + day + ' | Drop: ' + fmt(dropFromInitial, 1) + '% | BTC: ' + fmtUSD(btcPrice) + ' | HF: ' + fmt(hfBefore, 2) + '</h4>';
+
+        // Calculate how much collateral value needed to reach target HF
+        const collateralNeeded = hfTarget * debt / liqThresh;
+        const usdcNeeded = collateralNeeded - collateralValBefore;
+
+        if (usdcNeeded > 0 && gmValue > 0) {
+          // Sell GM: 50% becomes BTC, 50% stays USDC
+          const gmToSell = Math.min(gmValue, usdcNeeded * 2);
+          const btcFromGM = (gmToSell / 2) / btcPrice;
+          const usdcFromGM = gmToSell / 2;
+
+          gmValue -= gmToSell;
+          btcAdded += btcFromGM;
+
+          logHTML += '<div class="log-step">1. GM продажа: ' + fmtUSD(gmToSell) + '</div>';
+          logHTML += '<div class="log-calc">• 50% → BTC: ' + fmt(btcFromGM, 6) + ' BTC в залог</div>';
+          logHTML += '<div class="log-calc">• 50% → USDC: ' + fmtUSD(usdcFromGM) + '</div>';
+          actions.push('GM→' + fmt(btcFromGM, 4) + ' BTC');
+
+          // Buy new GM from Stability based on trigger number
+          let fundsForGM = usdcFromGM;
+          let stabilityUsed = 0;
+
+          if (triggerCount === 3 && stabilityZone > 0) {
+            stabilityUsed = stabilityZone / 3;
+            fundsForGM += stabilityUsed;
+            stabilityZone -= stabilityUsed;
+            logHTML += '<div class="log-step">2. Stability 1/3 → GM: ' + fmtUSD(stabilityUsed) + '</div>';
+            actions.push('Stab 1/3→GM');
+          } else if (triggerCount === 4 && stabilityZone > 0) {
+            stabilityUsed = stabilityZone / 2;
+            fundsForGM += stabilityUsed;
+            stabilityZone -= stabilityUsed;
+            logHTML += '<div class="log-step">2. Stability 1/2 → GM: ' + fmtUSD(stabilityUsed) + '</div>';
+            actions.push('Stab 1/2→GM');
+          } else if (triggerCount === 5 && stabilityZone > 0) {
+            stabilityUsed = stabilityZone;
+            fundsForGM += stabilityUsed;
+            stabilityZone = 0;
+            logHTML += '<div class="log-step">2. Stability ВСЯ → GM: ' + fmtUSD(stabilityUsed) + '</div>';
+            actions.push('Stab ALL→GM');
+          } else {
+            logHTML += '<div class="log-step" style="color:#ffaa00">2. Stability исчерпана</div>';
+          }
+
+          if (fundsForGM > 0) {
+            gmValue += fundsForGM;
+            logHTML += '<div class="log-calc">• Итого в GM: ' + fmtUSD(fundsForGM) + '</div>';
+          }
+        } else if (gmValue <= 0) {
+          logHTML += '<div class="log-step" style="color:#ff4444">GM исчерпан!</div>';
+          actions.push('GM исчерпан');
+        }
+
+        // Update collateral
+        collateralBTC += btcAdded;
+        logHTML += '<div class="log-step">Результат: Collateral +' + fmt(btcAdded, 6) + ' BTC → ' + fmt(collateralBTC, 4) + ' BTC</div>';
+        logHTML += '</div>';
+        lastTriggerPrice = btcPrice;
+      }
+    } else if (day === 0) {
+      actions.push('Начальное состояние');
+    }
+
+    // Calculate metrics AFTER actions
+    const collateralValAfter = collateralBTC * btcPrice;
+    const hfAfter = (collateralValAfter * liqThresh) / debt;
+    const ltvAfter = (debt / collateralValAfter) * 100;
+    const ylAfter = calcYL(gmValue, clmmValue, reserve, debt);
+
+    results.push({
+      day: day,
+      dropInit: dropFromInitial,
+      dropLast: dropFromLast,
+      dropTrig: dropFromTrigger,
+      btcPrice,
+      hfBefore,
+      hfAfter,
+      ltv: ltvAfter,
+      collateralBTC,
+      collateralVal: collateralValAfter,
+      gmValue,
+      clmmValue,
+      clmmNumber: clmmActive ? clmmNumber : 0,
+      btcAdded,
+      reserve,
+      stabilityZone,
+      ylAfter,
+      actions: actions.join('; ') || '-',
+      isTrigger,
+      // === НОВЫЕ ПОЛЯ ДЛЯ DCA ===
+      dcaReceived: dcaReceived,           // Сумма DCA на этот день (0 если не DCA день)
+      sgRatio: sgRatioCurrent,            // S/G Ratio для отображения в таблице
+      ylRatio: ylRatioCurrent             // Y/L Ratio для отображения в таблице
+    });
+
+    prevBtcPrice = btcPrice;
+    prevGmValue = gmValue;
+  }
+
+  renderTable(results);
+  document.getElementById('logContainer').innerHTML = logHTML || '<div style="color:#888;padding:20px;text-align:center">Триггеры не сработали (HF не опускался ниже ' + hfTrigger + ')</div>';
+  renderCharts(results);
+  renderSummary(results, triggerCount);
+}
+
+// Форматирование S/G Ratio в формате "X/Y" где X+Y=100
+function formatSGRatio(sgRatio) {
+  const sPct = Math.round(sgRatio * 100);  // Stability %
+  const gPct = 100 - sPct;                  // Growth %
+  return sPct + '/' + gPct;                 // Формат "40/60"
+}
+
+function renderTable(data) {
+  const tbody = document.querySelector('#resultsTable tbody');
+  tbody.innerHTML = data.map(r => {
+    const hfBeforeC = r.hfBefore > 1.5 ? 'positive' : r.hfBefore > 1.2 ? 'warning' : 'danger';
+    const hfAfterC = r.hfAfter > 1.5 ? 'positive' : r.hfAfter > 1.2 ? 'warning' : 'danger';
+    const ltvC = r.ltv > 75 ? 'danger' : r.ltv > 65 ? 'warning' : '';
+    const ylC = r.ylAfter < 0.5 ? 'danger' : r.ylAfter < 0.8 ? 'warning' : '';
+    const rowClass = r.isTrigger ? 'trigger-row' : '';
+
+    // S/G Ratio в формате "X/Y" где X+Y=100
+    const sgFormatted = r.sgRatio > 0 ? formatSGRatio(r.sgRatio) : '-';
+
+    return '<tr class="' + rowClass + '">' +
+      '<td><b>' + r.day + '</b></td>' +
+      '<td><b>' + fmt(r.dropInit, 1) + '%</b></td>' +
+      '<td>' + (r.dropLast === 0 ? '-' : fmt(r.dropLast, 3) + '%') + '</td>' +
+      '<td>' + (r.dropTrig === 0 ? '-' : fmt(r.dropTrig, 1) + '%') + '</td>' +
+      '<td>' + fmtUSD(r.btcPrice) + '</td>' +
+      '<td class="' + hfBeforeC + '">' + fmt(r.hfBefore, 2) + '</td>' +
+      '<td class="' + hfAfterC + '"><b>' + fmt(r.hfAfter, 2) + '</b></td>' +
+      '<td class="' + ltvC + '">' + fmt(r.ltv, 1) + '%</td>' +
+      '<td><b>' + fmt(r.collateralBTC, 4) + '</b></td>' +
+      '<td>' + fmtUSD(r.gmValue) + '</td>' +
+      '<td>' + (r.clmmValue > 0 ? fmtUSD(r.clmmValue) : '-') + '</td>' +
+      '<td>' + (r.clmmNumber > 0 ? '#' + r.clmmNumber : '-') + '</td>' +
+      '<td>' + fmtUSD(r.reserve) + '</td>' +
+      '<td>' + fmtUSD(r.stabilityZone) + '</td>' +
+      '<td>' + (r.btcAdded > 0 ? '+' + fmt(r.btcAdded, 4) : '-') + '</td>' +
+      '<td class="' + ylC + '">' + fmt(r.ylAfter, 2) + '</td>' +
+      '<td>' + sgFormatted + '</td>' +
+      '<td class="action-cell">' + r.actions + '</td>' +
+      '</tr>';
+  }).join('');
+}
+
+function renderCharts(data) {
+  // Filter data for charts: every 10th day + triggers
+  const filteredData = data.filter((r, i) => i % 10 === 0 || r.isTrigger);
+  const labels = filteredData.map(r => 'D' + r.day + ' (' + fmt(r.dropInit, 0) + '%)');
+
+  const cfgs = [
+    { id: 'hfChart', label: 'Health Factor', data: filteredData.map(r => r.hfAfter), color: '#00ff88', ref: 1.0, refLabel: 'Liquidation' },
+    { id: 'ltvChart', label: 'LTV %', data: filteredData.map(r => r.ltv), color: '#ff6b35', ref: 85, refLabel: 'Liq Threshold' },
+    { id: 'collateralChart', label: 'Collateral BTC', data: filteredData.map(r => r.collateralBTC), color: '#f7931a' },
+    { id: 'yieldChart', label: 'Yield Zone $', data: filteredData.map(r => r.gmValue + r.clmmValue + r.reserve), color: '#9966ff' }
+  ];
+
+  cfgs.forEach(c => {
+    if (charts[c.id]) charts[c.id].destroy();
+    const ctx = document.getElementById(c.id).getContext('2d');
+    const datasets = [{
+      label: c.label,
+      data: c.data,
+      borderColor: c.color,
+      backgroundColor: c.color + '33',
+      fill: true,
+      tension: 0.3,
+      pointRadius: 4
+    }];
+    if (c.ref) {
+      datasets.push({
+        label: c.refLabel,
+        data: Array(labels.length).fill(c.ref),
+        borderColor: '#ff4444',
+        borderDash: [5, 5],
+        pointRadius: 0,
+        fill: false
+      });
+    }
+    charts[c.id] = new Chart(ctx, {
+      type: 'line',
+      data: { labels, datasets },
+      options: {
+        responsive: true,
+        plugins: { legend: { labels: { color: '#e0e0e0' } } },
+        scales: {
+          x: { ticks: { color: '#888' }, grid: { color: '#333' } },
+          y: { ticks: { color: '#888' }, grid: { color: '#333' } }
+        }
+      }
+    });
+  });
+}
+
+function renderSummary(data, triggerCount) {
+  const first = data[0];
+  const last = data[data.length - 1];
+  const btcGain = ((last.collateralBTC - first.collateralBTC) / first.collateralBTC * 100);
+  const minHF = Math.min(...data.map(r => r.hfAfter));
+  const maxLTV = Math.max(...data.map(r => r.ltv));
+  const totalBtcAdded = data.reduce((s, r) => s + r.btcAdded, 0);
+  const totalDCA = data.reduce((sum, r) => sum + (r.dcaReceived || 0), 0);
+  const hfTrigger = +document.getElementById('hfTrigger').value;
+  const initialYield = first.gmValue + first.clmmValue + first.reserve;
+  const finalYield = last.gmValue + last.clmmValue + last.reserve;
+
+  document.getElementById('summary').innerHTML = `
+    <h3>📊 Итоги симуляции</h3>
+    <div class="summary-grid">
+      <div class="summary-item"><div class="value">${triggerCount}</div><div class="label">Триггеров (HF&lt;${hfTrigger})</div></div>
+      <div class="summary-item"><div class="value">${fmt(first.collateralBTC, 4)}</div><div class="label">Начальный BTC</div></div>
+      <div class="summary-item"><div class="value">${fmt(last.collateralBTC, 4)}</div><div class="label">Итоговый BTC</div></div>
+      <div class="summary-item"><div class="value positive">+${fmt(btcGain, 1)}%</div><div class="label">Рост залога</div></div>
+      <div class="summary-item"><div class="value">+${fmt(totalBtcAdded, 4)}</div><div class="label">BTC добавлено</div></div>
+      <div class="summary-item"><div class="value ${minHF < 1.1 ? 'danger' : minHF < 1.3 ? 'warning' : ''}">${fmt(minHF, 2)}</div><div class="label">Мин. HF</div></div>
+      <div class="summary-item"><div class="value ${maxLTV > 80 ? 'danger' : maxLTV > 70 ? 'warning' : ''}">${fmt(maxLTV, 1)}%</div><div class="label">Макс. LTV</div></div>
+      <div class="summary-item"><div class="value">${fmtUSD(totalDCA)}</div><div class="label">Всего DCA</div></div>
+      <div class="summary-item"><div class="value">${fmtUSD(last.stabilityZone)}</div><div class="label">Остаток Stability</div></div>
+      <div class="summary-item"><div class="value">${fmtUSD(last.gmValue)}</div><div class="label">GM в конце</div></div>
+      <div class="summary-item"><div class="value">${fmtUSD(finalYield)}</div><div class="label">Yield Zone в конце</div></div>
+    </div>
+  `;
+}
+
+// Run simulation on page load if already authenticated
+document.addEventListener('DOMContentLoaded', function() {
+  if (sessionStorage.getItem('cgs_auth') === 'true') {
+    document.getElementById('passwordOverlay').style.display = 'none';
+    document.getElementById('mainContent').classList.remove('content-hidden');
+    runSimulation();
+  }
+});
+</script>
+</body>
+</html>

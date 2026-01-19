@@ -266,10 +266,12 @@ $$\text{Отклонение Y/L} = \frac{|\text{текущий} - 1.0|}{1.0}$$
 ## 10. Важные замечания
 
 ### Ограничения симуляции
-⚡ Симуляция показывает **только защитную механику** при падении рынка без учёта:
+⚡ Большинство симуляций показывают **только защитную механику** при падении рынка без учёта:
 - Доходности DeFi-позиций (APY)
-- Регулярных DCA-инвестиций
+- Регулярных DCA-инвестиций (кроме Capital Growth 270 Days v1.1)
 - Комиссий и slippage
+
+**Исключение:** Capital Growth 270 Days v1.1 включает регулярные DCA-инвестиции с автоматическим распределением по зонам.
 
 ### Риски
 - При падении свыше **-55–60%** HF приближается к критическому уровню
@@ -291,6 +293,7 @@ $$\text{Отклонение Y/L} = \frac{|\text{текущий} - 1.0|}{1.0}$$
 |--------|------|----------|
 | **Capital Growth** | Накопление BTC | Агрессивная стратегия для максимального накопления базового актива |
 | **Capital Growth Dynamic** | Накопление BTC (HF-триггеры) | Модифицированная версия с триггерами на основе Health Factor |
+| **Capital Growth 270 Days** | Накопление BTC (270 дней до -76%) | Постепенное падение BTC за 270 дней с HF-триггерами |
 | **Hybrid Model** | Доход + Рост | Сбалансированный подход: ежемесячный доход и участие в росте рынка |
 
 ### Quiz
@@ -306,6 +309,7 @@ cgs-simulation/
 ├── index.html                    # Landing page — выбор модели
 ├── capital_growth.html           # Capital Growth симуляция
 ├── capital_growth_dynamic.html   # Capital Growth Dynamic (HF-триггеры)
+├── capital_growth_270days.html   # Capital Growth 270 Days (постепенное падение)
 ├── index_extended.html           # Capital Growth расширенная (+ S/G, Y/L)
 ├── hybrid.html                   # Hybrid Model симуляция
 ├── quiz.html                     # Quiz — тренировка принятия решений
@@ -322,6 +326,7 @@ cgs-simulation/
 | Выбор модели | [index.html](https://cgs-simulation.vercel.app) |
 | Capital Growth | [capital_growth.html](https://cgs-simulation.vercel.app/capital_growth.html) |
 | Capital Growth Dynamic | [capital_growth_dynamic.html](https://cgs-simulation.vercel.app/capital_growth_dynamic.html) |
+| Capital Growth 270 Days | [capital_growth_270days.html](https://cgs-simulation.vercel.app/capital_growth_270days.html) |
 | Capital Growth Extended | [index_extended.html](https://cgs-simulation.vercel.app/index_extended.html) |
 | Hybrid Model | [hybrid.html](https://cgs-simulation.vercel.app/hybrid.html) |
 | Quiz | [quiz.html](https://cgs-simulation.vercel.app/quiz.html) |
@@ -352,6 +357,57 @@ cgs-simulation/
 - Учитывают доходы с DeFi (реинвестирование в залог)
 - Объективная метрика здоровья позиции
 - Регулярные DCA-пополнения могут отодвигать триггеры
+
+### Capital Growth 270 Days
+
+Модификация Capital Growth Dynamic с постепенным падением BTC за 270 дней вместо шагов -2%.
+
+**Ключевые параметры:**
+- Период симуляции: **270 дней** (около 9 месяцев)
+- Ежедневное падение: **-0.527%** (компаунд)
+- Итоговое падение: **-76%** (от $100k до $24k)
+- Триггеры: HF < 1.45 (идентичны Dynamic версии)
+
+**Формула ежедневного падения:**
+```
+Daily Multiplier = 0.9947283281580744
+BTC Price (day N) = Initial Price × (0.9947283281580744)^N
+```
+
+**Особенности v1.1 (с DCA):**
+- Регулярные DCA-инвестиции (по умолчанию $1000 каждые 30 дней)
+- Автоматическое распределение DCA по зонам портфеля
+- Балансировка S/G и Y/L Ratio через DCA
+- Покупка BTC в залог когда все метрики в норме
+- Колонка "S/G" в таблице для отслеживания баланса Stability/Growth
+- Summary показывает "Всего DCA" за период симуляции
+
+**DCA Parameters:**
+| Параметр | Значение по умолчанию | Описание |
+|----------|----------------------|----------|
+| DCA Interval | 30 дней | Периодичность DCA-инвестиций |
+| DCA Amount | $1000 | Размер DCA пополнения |
+| Target Y/L Ratio | 1.0 | Целевое соотношение Yield/Loan |
+
+**Логика распределения DCA (HF не влияет!):**
+1. **S/G < target**: DCA → Stability Zone (перекос в Growth)
+2. **S/G >= target, Y/L < 1.0**: DCA → GM Pool (Yield Zone мала)
+3. **S/G >= target, Y/L >= 1.0**: DCA → BTC в залог (всё в норме)
+
+**Особенности отображения:**
+- Реалистичное постепенное падение (как в реальном рынке)
+- Все 270 дней отображаются в таблице
+- Колонка "День" для отслеживания прогресса
+- Колонка "S/G" для отслеживания баланса Stability/Growth (формат "40/60")
+- Графики фильтруются (каждый 10-й день + триггеры)
+- Триггерная логика идентична Capital Growth Dynamic
+
+**Преимущества 270-дневной симуляции с DCA:**
+- Соответствует историческим медвежьим рынкам BTC
+- Показывает поведение системы при длительном падении
+- HF-триггеры учитывают накопленные доходы с DeFi
+- Регулярные DCA помогают поддерживать баланс портфеля
+- Реалистичная временная шкала для планирования
 
 ### Hybrid Model
 
