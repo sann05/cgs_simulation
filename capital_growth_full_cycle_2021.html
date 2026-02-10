@@ -120,6 +120,16 @@ tr.trigger-row:hover { background: linear-gradient(90deg, #4a3a2a, #3a2a4a) !imp
 .conclusions li b {
   color: #fff;
 }
+.chart-box {
+  margin: 20px 0;
+  padding: 20px;
+  background: linear-gradient(135deg, #1a1a3a, #1a2a3a);
+  border-radius: 12px;
+  border: 1px solid #333;
+}
+.chart-box canvas {
+  max-height: 300px !important;
+}
 </style>
 </head>
 <body>
@@ -296,7 +306,10 @@ Target S/G берется из слайдера Growth/Stability
 
 <button id="runBtn">🚀 Запустить симуляцию</button>
 
-<h2>📋 Таблица состояний (376 дней с реальными историческими ценами BTC)</h2>
+<h2>📋 Таблица состояний (866 дней: падение + восстановление)</h2>
+<p style="color: #888; font-size: 0.9em; margin: 10px 0;">
+🔴 Дни 0-376: Медвежий рынок (реальные данные) | 🟢 Дни 377-866: Восстановление (расчетные данные)
+</p>
 <div class="table-wrap">
 <table id="resultsTable">
 <thead><tr>
@@ -396,7 +409,11 @@ function onAuthSuccess() {
 
 // Helper: format date string to DD.MM format
 function formatDate(dateString) {
+  if (!dateString || typeof dateString !== 'string') {
+    return '-';
+  }
   const parts = dateString.split('-');
+  if (parts.length < 3) return dateString;
   return parts[2] + '.' + parts[1]; // DD.MM
 }
 
@@ -2307,9 +2324,17 @@ function renderTable(data) {
 }
 
 function renderCharts(data) {
-  // Filter data for charts: every 20th day + triggers (to keep chart readable with 866 days)
-  const filteredData = data.filter((r, i) => i % 20 === 0 || r.isTrigger);
-  const labels = filteredData.map(r => r.date + ' (' + fmt(r.dropInit, 0) + '%)');
+  // Filter data for charts: every 30th day + triggers + phase marker (cleaner visualization for 866 days)
+  const filteredData = data.filter((r, i) => i % 30 === 0 || r.isTrigger);
+
+  // Find the recovery phase start index in filtered data
+  const recoveryStartIndex = filteredData.findIndex(r => r.day > 376);
+
+  const labels = filteredData.map((r, i) => {
+    // Show date and change percentage
+    const changeStr = r.dropInit >= 0 ? '+' + fmt(r.dropInit, 0) : fmt(r.dropInit, 0);
+    return r.date + ' (' + changeStr + '%)';
+  });
 
   const cfgs = [
     { id: 'hfChart', label: 'Health Factor', data: filteredData.map(r => r.hfAfter), color: '#00ff88', ref: 1.0, refLabel: 'Liquidation' },
@@ -2327,8 +2352,9 @@ function renderCharts(data) {
       borderColor: c.color,
       backgroundColor: c.color + '33',
       fill: true,
-      tension: 0.3,
-      pointRadius: 4
+      tension: 0.4,
+      pointRadius: 2,
+      pointHoverRadius: 5
     }];
     if (c.ref) {
       datasets.push({
@@ -2340,15 +2366,38 @@ function renderCharts(data) {
         fill: false
       });
     }
+
     charts[c.id] = new Chart(ctx, {
       type: 'line',
       data: { labels, datasets },
       options: {
         responsive: true,
-        plugins: { legend: { labels: { color: '#e0e0e0' } } },
+        maintainAspectRatio: true,
+        aspectRatio: 2.5,
+        plugins: {
+          legend: { labels: { color: '#e0e0e0', font: { size: 11 } } },
+          title: {
+            display: recoveryStartIndex > 0,
+            text: '🔴 Bear Market (days 0-376) | 🟢 Recovery (days 377-866)',
+            color: '#888',
+            font: { size: 11 },
+            padding: { bottom: 15 }
+          }
+        },
         scales: {
-          x: { ticks: { color: '#888' }, grid: { color: '#333' } },
-          y: { ticks: { color: '#888' }, grid: { color: '#333' } }
+          x: {
+            ticks: {
+              color: '#888',
+              maxRotation: 45,
+              minRotation: 45,
+              font: { size: 9 }
+            },
+            grid: { color: '#333' }
+          },
+          y: {
+            ticks: { color: '#888', font: { size: 10 } },
+            grid: { color: '#333' }
+          }
         }
       }
     });
