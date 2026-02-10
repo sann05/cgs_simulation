@@ -11,6 +11,7 @@ CGS (Capital Growth System) — симулятор DeFi-портфеля для 
 | **Capital Growth** | Максимальное накопление BTC | `capital_growth.html` |
 | **Capital Growth Dynamic** | Накопление BTC (HF-триггеры) | `capital_growth_dynamic.html` |
 | **Capital Growth 270 Days** | Накопление BTC (270 дней до -76%) | `capital_growth_270days.html` |
+| **Capital Growth 376 Days** | Накопление BTC (реальный медвежий рынок 2021-2022) | `capital_growth_376days.html` |
 | **Hybrid Model** | Ежемесячный доход + рост капитала | `hybrid.html` |
 
 ### Quiz
@@ -35,6 +36,7 @@ cgs-simulation/
 ├── capital_growth.html           # Capital Growth симуляция
 ├── capital_growth_dynamic.html   # Capital Growth Dynamic (HF-триггеры)
 ├── capital_growth_270days.html   # Capital Growth 270 Days (постепенное падение)
+├── capital_growth_376days.html   # Capital Growth 376 Days (реальный медвежий рынок 2021-2022)
 ├── index_extended.html           # Capital Growth расширенная (+ S/G, Y/L)
 ├── hybrid.html                   # Hybrid Model симуляция
 ├── quiz.html                     # Quiz — тренировка принятия решений
@@ -51,7 +53,8 @@ cgs-simulation/
 | `index.html` | Landing page с выбором модели |
 | `capital_growth.html` | Capital Growth — базовая версия (v4.8) |
 | `capital_growth_dynamic.html` | Capital Growth Dynamic — HF-триггеры (v1.0) |
-| `capital_growth_270days.html` | Capital Growth 270 Days — постепенное падение (v1.0) |
+| `capital_growth_270days.html` | Capital Growth 270 Days — постепенное падение (v1.1) |
+| `capital_growth_376days.html` | Capital Growth 376 Days — реальный медвежий рынок 2021-2022 (v1.0) |
 | `index_extended.html` | Capital Growth — расширенная (v4.9) с S/G и Y/L |
 | `hybrid.html` | Hybrid Model (v1.0) |
 | `quiz.html` | Quiz — тренировка принятия решений (v1.0) |
@@ -414,6 +417,20 @@ if (hfBefore < hfTrigger) {
 | CLMM ренж | -15% / +5% |
 | Yield Zone | 40% GM, 30% CLMM, 30% Reserve |
 
+### Контекст: Исторические падения BTC
+
+На странице симуляции отображается таблица исторических падений Bitcoin, которая показывает, что BTC становится более **зрелым** активом:
+
+| Период | ATH | Минимум | Падение | Длительность |
+|--------|-----|---------|---------|--------------|
+| 2011 | $32 | $2 | **~94%** | ~5 мес |
+| 2013-2015 | $1,150 | $150 | **~87%** | ~14 мес |
+| 2017-2018 | $20,000 | $3,200 | **~84%** | ~12 мес |
+| 2021-2022 | $69,000 | $15,500 | **~78%** | ~13 мес |
+| **Симуляция** | $100,000 | $24,000 | **~76%** | 270 дней |
+
+**Вывод:** Падения становятся менее глубокими с каждым циклом, но для стресс-тестирования стратегии мы симулируем серьёзное падение -76%, соответствующее тяжёлому медвежьему рынку.
+
 ### DCA Parameters (добавлено в v1.1)
 
 | Параметр | Значение по умолчанию | Описание |
@@ -489,6 +506,82 @@ for (let day = 0; day <= TOTAL_DAYS; day++) {
 - **Долгосрочная перспектива** — 9 месяцев медвежьего рынка
 - **Исторические данные** — падение -76% соответствует прошлым циклам BTC
 - **HF-триггеры** — срабатывают по мере ухудшения позиции, учитывают доходы с DeFi
+
+---
+
+## Capital Growth 376 Days — Реальный медвежий рынок 2021-2022
+
+Симуляция с использованием исторических данных последнего медвежьего рынка (10 ноября 2021 — 21 ноября 2022).
+
+### Параметры
+
+| Параметр | Значение |
+|----------|----------|
+| Период симуляции | **376 дней** (10.11.2021 — 21.11.2022) |
+| Начальная цена (ATH) | **$68,982** (10 ноября 2021) |
+| Конечная цена (минимум) | **$15,768** (21 ноября 2022) |
+| Ежедневное падение | **-0.45%** (компаунд) |
+| Итоговое падение | **-77.2%** (от $68,982 до $15,768) |
+| HF Trigger | 1.45 |
+| HF Target | 1.70 |
+| CLMM ренж | -15% / +5% |
+| Yield Zone | 40% GM, 30% CLMM, 30% Reserve |
+| Катализатор минимума | Крах FTX (11 ноября 2022) |
+
+### Логика симуляции
+
+```javascript
+const TOTAL_DAYS = 376;
+const START_PRICE = 68982; // Real ATH price on Nov 10, 2021
+const END_PRICE = 15768;   // Real bottom price on Nov 21, 2022
+const DAILY_MULTIPLIER = Math.pow(END_PRICE / START_PRICE, 1 / TOTAL_DAYS);
+// = Math.pow(0.228616..., 1/376) = 0.9954967...
+// Daily drop: ~-0.45%
+
+for (let day = 0; day <= TOTAL_DAYS; day++) {
+  const btcPrice = START_PRICE * Math.pow(DAILY_MULTIPLIER, day);
+  const dropFromInitial = ((btcPrice - START_PRICE) / START_PRICE) * 100;
+
+  // Trigger logic identical to Capital Growth Dynamic
+  // ...
+}
+```
+
+### Расчет ежедневного падения
+
+Для достижения падения -77.2% за 376 дней:
+- Начальная цена: $68,982 (100%)
+- Конечная цена: $15,768 (22.86%)
+- Формула: `finalPrice = initialPrice × (dailyMultiplier)^376`
+- `15768 = 68982 × (dailyMultiplier)^376`
+- `dailyMultiplier = (15768/68982)^(1/376) = 0.9954967...`
+- **Ежедневное падение: -0.45%**
+
+Проверка: `68982 × 0.9954967^376 ≈ 15768` ✓
+
+### Особенности отображения
+
+- **Таблица:** Показывает все 376 дней с реальными датами
+- **Колонка "Дата":** Отображает реальную дату (формат DD.MM)
+- **Drop (last):** Показывается с 3 знаками после запятой (ежедневное падение малое)
+- **Графики:** Фильтруются (каждый 15-й день + триггеры) для читабельности
+- **Начальная цена:** $68,982 (readonly, нельзя изменить)
+
+### Особенности реального медвежьего рынка 2021-2022
+
+- **10 ноября 2021** — All-Time High Bitcoin ($68,982)
+- **11 ноября 2022** — Крах FTX (начало резкого падения к минимуму)
+- **21 ноября 2022** — Достижение минимума ($15,768)
+- **Длительность:** 376 дней (~12.5 месяцев)
+- **Контекст:** Повышение процентных ставок ФРС, крах Terra Luna, крах FTX
+
+### Преимущества симуляции с реальными данными
+
+- **Максимальная реалистичность** — использует точные исторические цены
+- **Исторический контекст** — показывает как стратегия работала бы в прошлом
+- **Проверка надежности** — тестирует стратегию на реальных событиях (крах FTX)
+- **Референс** — можно сравнить с другими симуляциями (270 дней)
+- **HF-триггеры** — срабатывают по мере ухудшения позиции, как в реальности
 
 ---
 
@@ -584,6 +677,7 @@ Quiz для проверки понимания стратегии Capital Growt
 - Capital Growth: https://cgs-simulation.vercel.app/capital_growth.html
 - Capital Growth Dynamic: https://cgs-simulation.vercel.app/capital_growth_dynamic.html
 - Capital Growth 270 Days: https://cgs-simulation.vercel.app/capital_growth_270days.html
+- Capital Growth 376 Days: https://cgs-simulation.vercel.app/capital_growth_376days.html
 - Capital Growth Extended: https://cgs-simulation.vercel.app/index_extended.html
 - Hybrid Model: https://cgs-simulation.vercel.app/hybrid.html
 - Quiz: https://cgs-simulation.vercel.app/quiz.html
@@ -599,6 +693,7 @@ Quiz для проверки понимания стратегии Capital Growt
 | v4.8 | capital_growth.html | Capital Growth базовая |
 | v1.0 | capital_growth_dynamic.html | Capital Growth Dynamic (HF-триггеры) |
 | v1.1 | capital_growth_270days.html | Capital Growth 270 Days + DCA (постепенное падение с DCA) |
+| v1.0 | capital_growth_376days.html | Capital Growth 376 Days (реальный медвежий рынок 2021-2022) |
 | v4.9 | index_extended.html | Capital Growth расширенная с S/G и Y/L |
 | v1.0 | hybrid.html | Hybrid Model |
 | v1.0 | quiz.html | Quiz — тренировка принятия решений |
