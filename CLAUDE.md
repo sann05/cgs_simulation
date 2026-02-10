@@ -10,8 +10,7 @@ CGS (Capital Growth System) — симулятор DeFi-портфеля для 
 |--------|------|------|
 | **Capital Growth** | Максимальное накопление BTC | `capital_growth.html` |
 | **Capital Growth Dynamic** | Накопление BTC (HF-триггеры) | `capital_growth_dynamic.html` |
-| **Capital Growth 270 Days** | Накопление BTC (270 дней до -76%) | `capital_growth_270days.html` |
-| **Capital Growth 376 Days** | Накопление BTC (реальный медвежий рынок 2021-2022) | `capital_growth_376days.html` |
+| **Capital Growth: Bear Market 2021** | Накопление BTC (реальный медвежий рынок 2021-2022) | `capital_growth_bear_market_2021.html` |
 | **Hybrid Model** | Ежемесячный доход + рост капитала | `hybrid.html` |
 
 ### Quiz
@@ -35,8 +34,7 @@ cgs-simulation/
 ├── index.html                    # Landing page — выбор модели
 ├── capital_growth.html           # Capital Growth симуляция
 ├── capital_growth_dynamic.html   # Capital Growth Dynamic (HF-триггеры)
-├── capital_growth_270days.html   # Capital Growth 270 Days (постепенное падение)
-├── capital_growth_376days.html   # Capital Growth 376 Days (реальный медвежий рынок 2021-2022)
+├── capital_growth_bear_market_2021.html   # Capital Growth: Bear Market 2021 (реальный медвежий рынок 2021-2022)
 ├── index_extended.html           # Capital Growth расширенная (+ S/G, Y/L)
 ├── hybrid.html                   # Hybrid Model симуляция
 ├── quiz.html                     # Quiz — тренировка принятия решений
@@ -53,8 +51,7 @@ cgs-simulation/
 | `index.html` | Landing page с выбором модели |
 | `capital_growth.html` | Capital Growth — базовая версия (v4.8) |
 | `capital_growth_dynamic.html` | Capital Growth Dynamic — HF-триггеры (v1.0) |
-| `capital_growth_270days.html` | Capital Growth 270 Days — постепенное падение (v1.1) |
-| `capital_growth_376days.html` | Capital Growth 376 Days — реальный медвежий рынок 2021-2022 (v1.0) |
+| `capital_growth_bear_market_2021.html` | Capital Growth: Bear Market 2021 — реальный медвежий рынок 2021-2022 (v1.0) |
 | `index_extended.html` | Capital Growth — расширенная (v4.9) с S/G и Y/L |
 | `hybrid.html` | Hybrid Model (v1.0) |
 | `quiz.html` | Quiz — тренировка принятия решений (v1.0) |
@@ -401,115 +398,7 @@ if (hfBefore < hfTrigger) {
 
 ---
 
-## Capital Growth 270 Days — Постепенное падение
-
-Модификация Capital Growth Dynamic с постепенным падением BTC за 270 дней вместо шагов -2%.
-
-### Параметры
-
-| Параметр | Значение |
-|----------|----------|
-| Период симуляции | 270 дней |
-| Ежедневное падение | -0.527% (компаунд) |
-| Итоговое падение | -76% (от $100k до $24k) |
-| HF Trigger | 1.45 |
-| HF Target | 1.70 |
-| CLMM ренж | -15% / +5% |
-| Yield Zone | 40% GM, 30% CLMM, 30% Reserve |
-
-### Контекст: Исторические падения BTC
-
-На странице симуляции отображается таблица исторических падений Bitcoin, которая показывает, что BTC становится более **зрелым** активом:
-
-| Период | ATH | Минимум | Падение | Длительность |
-|--------|-----|---------|---------|--------------|
-| 2011 | $32 | $2 | **~94%** | ~5 мес |
-| 2013-2015 | $1,150 | $150 | **~87%** | ~14 мес |
-| 2017-2018 | $20,000 | $3,200 | **~84%** | ~12 мес |
-| 2021-2022 | $69,000 | $15,500 | **~78%** | ~13 мес |
-| **Симуляция** | $100,000 | $24,000 | **~76%** | 270 дней |
-
-**Вывод:** Падения становятся менее глубокими с каждым циклом, но для стресс-тестирования стратегии мы симулируем серьёзное падение -76%, соответствующее тяжёлому медвежьему рынку.
-
-### DCA Parameters (добавлено в v1.1)
-
-| Параметр | Значение по умолчанию | Описание |
-|----------|----------------------|----------|
-| DCA Interval | 30 дней | Периодичность DCA-инвестиций |
-| DCA Amount | $1000 | Размер DCA пополнения |
-| Target Y/L Ratio | 1.0 | Целевое соотношение Yield/Loan |
-
-**Логика распределения DCA (HF не влияет!):**
-
-1. **S/G < target**: DCA → Stability Zone (перекос в Growth)
-2. **S/G >= target, Y/L < 1.0**: DCA → GM Pool (Yield Zone мала)
-3. **S/G >= target, Y/L >= 1.0**: DCA → BTC в залог (всё в норме)
-
-**Формулы:**
-```javascript
-// current_SG = Stability / (Stability + Collateral_Value)
-const sgRatioCurrent = stabilityZone / (stabilityZone + collateralValCurrent);
-
-// current_YL = (GM + CLMM + Reserve) / Debt
-const ylRatioCurrent = (gmValue + clmmValue + reserve) / debt;
-
-// target_SG = из слайдера Growth/Stability
-// target_YL = 1.0 (по умолчанию)
-```
-
-**Отображение в таблице:**
-- **Колонка "Действие"**: показывает DCA информацию (например "DCA $1,000→Stability (HF=1.42)")
-- **Колонка "S/G"**: отображает Stability/Growth Ratio в формате "X/Y" где X+Y=100 (например "40/60")
-- **Summary**: добавлена метрика "Всего DCA" для отслеживания суммарных DCA-инвестиций
-
-### Логика симуляции
-
-```javascript
-const TOTAL_DAYS = 270;
-const DAILY_MULTIPLIER = 0.9947283281580744; // Results in -76% over 270 days
-
-for (let day = 0; day <= TOTAL_DAYS; day++) {
-  const btcPrice = btcStart * Math.pow(DAILY_MULTIPLIER, day);
-  const dropFromInitial = ((btcPrice - btcStart) / btcStart) * 100;
-
-  // Calculate drop from previous day
-  const prevPrice = day > 0 ? btcStart * Math.pow(DAILY_MULTIPLIER, day - 1) : btcStart;
-  const dropFromLast = day === 0 ? 0 : ((btcPrice - prevPrice) / prevPrice) * 100;
-
-  // Trigger logic identical to Capital Growth Dynamic
-  // ...
-}
-```
-
-### Расчет ежедневного падения
-
-Для достижения падения -76% за 270 дней:
-- Начальная цена: 100% (1.0)
-- Конечная цена: 24% (0.24)
-- Формула: `finalPrice = initialPrice × (dailyMultiplier)^270`
-- `0.24 = 1.0 × (dailyMultiplier)^270`
-- `dailyMultiplier = 0.24^(1/270) = 0.9947283281580744`
-- **Ежедневное падение: -0.527%**
-
-Проверка: `1.0 × 0.9947283281580744^270 = 0.24` ✓
-
-### Особенности отображения
-
-- **Таблица:** Показывает все 270 дней
-- **Колонка "День":** Добавлена для отслеживания прогресса
-- **Drop (last):** Показывается с 3 знаками после запятой (ежедневное падение малое)
-- **Графики:** Фильтруются (каждый 10-й день + триггеры) для читабельности
-
-### Преимущества 270-дневной симуляции
-
-- **Реалистичность** — постепенное падение, а не резкие скачки
-- **Долгосрочная перспектива** — 9 месяцев медвежьего рынка
-- **Исторические данные** — падение -76% соответствует прошлым циклам BTC
-- **HF-триггеры** — срабатывают по мере ухудшения позиции, учитывают доходы с DeFi
-
----
-
-## Capital Growth 376 Days — Реальный медвежий рынок 2021-2022
+## Capital Growth: Bear Market 2021 — Реальный медвежий рынок 2021-2022
 
 Симуляция с использованием исторических данных последнего медвежьего рынка (10 ноября 2021 — 21 ноября 2022).
 
@@ -605,11 +494,6 @@ for (let day = 0; day <= TOTAL_DAYS; day++) {
 - S/G или Y/L сильно отклонились от цели
 - Рекомендуется DCA в определённую зону
 
-**Реализовано в v1.1:**
-- ✅ Симуляция с DCA и регулярными пополнениями (Capital Growth 270 Days v1.1)
-- ✅ Автоматическое распределение DCA по зонам на основе отклонений S/G и Y/L
-- ✅ Отслеживание S/G Ratio в таблице
-
 ---
 
 ## Quiz — Тренировка принятия решений
@@ -676,8 +560,7 @@ Quiz для проверки понимания стратегии Capital Growt
 - Landing page: https://cgs-simulation.vercel.app
 - Capital Growth: https://cgs-simulation.vercel.app/capital_growth.html
 - Capital Growth Dynamic: https://cgs-simulation.vercel.app/capital_growth_dynamic.html
-- Capital Growth 270 Days: https://cgs-simulation.vercel.app/capital_growth_270days.html
-- Capital Growth 376 Days: https://cgs-simulation.vercel.app/capital_growth_376days.html
+- Capital Growth: Bear Market 2021: https://cgs-simulation.vercel.app/capital_growth_bear_market_2021.html
 - Capital Growth Extended: https://cgs-simulation.vercel.app/index_extended.html
 - Hybrid Model: https://cgs-simulation.vercel.app/hybrid.html
 - Quiz: https://cgs-simulation.vercel.app/quiz.html
@@ -692,8 +575,7 @@ Quiz для проверки понимания стратегии Capital Growt
 | v1.0 | index.html | Landing page — выбор модели |
 | v4.8 | capital_growth.html | Capital Growth базовая |
 | v1.0 | capital_growth_dynamic.html | Capital Growth Dynamic (HF-триггеры) |
-| v1.1 | capital_growth_270days.html | Capital Growth 270 Days + DCA (постепенное падение с DCA) |
-| v1.0 | capital_growth_376days.html | Capital Growth 376 Days (реальный медвежий рынок 2021-2022) |
+| v1.0 | capital_growth_bear_market_2021.html | Capital Growth: Bear Market 2021 (реальный медвежий рынок 2021-2022) |
 | v4.9 | index_extended.html | Capital Growth расширенная с S/G и Y/L |
 | v1.0 | hybrid.html | Hybrid Model |
 | v1.0 | quiz.html | Quiz — тренировка принятия решений |
