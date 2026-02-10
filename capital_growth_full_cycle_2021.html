@@ -120,15 +120,24 @@ tr.trigger-row:hover { background: linear-gradient(90deg, #4a3a2a, #3a2a4a) !imp
 .conclusions li b {
   color: #fff;
 }
+/* Override charts layout for better readability with 866 days */
+.charts {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 25px !important;
+}
 .chart-box {
-  margin: 20px 0;
-  padding: 20px;
+  margin: 0;
+  padding: 25px;
   background: linear-gradient(135deg, #1a1a3a, #1a2a3a);
   border-radius: 12px;
   border: 1px solid #333;
+  width: 100%;
 }
 .chart-box canvas {
-  max-height: 300px !important;
+  width: 100% !important;
+  max-height: 350px !important;
+  height: 350px !important;
 }
 </style>
 </head>
@@ -850,8 +859,7 @@ function renderCharts(data) {
       data: { labels, datasets },
       options: {
         responsive: true,
-        maintainAspectRatio: true,
-        aspectRatio: 2.5,
+        maintainAspectRatio: false,
         plugins: {
           legend: { labels: { color: '#e0e0e0', font: { size: 11 } } },
           title: {
