@@ -10,7 +10,7 @@ CGS (Capital Growth System) — симулятор DeFi-портфеля для 
 |--------|------|------|
 | **Capital Growth** | Максимальное накопление BTC | `capital_growth.html` |
 | **Capital Growth Dynamic** | Накопление BTC (HF-триггеры) | `capital_growth_dynamic.html` |
-| **Capital Growth: Bear Market 2021** | Накопление BTC (реальный медвежий рынок 2021-2022) | `capital_growth_bear_market_2021.html` |
+| **Capital Growth: Full Cycle 2021-2024** | Накопление BTC (реальный медвежий рынок 2021-2022) | `capital_growth_full_cycle_2021.html` |
 | **Hybrid Model** | Ежемесячный доход + рост капитала | `hybrid.html` |
 
 ### Quiz
@@ -34,7 +34,7 @@ cgs-simulation/
 ├── index.html                    # Landing page — выбор модели
 ├── capital_growth.html           # Capital Growth симуляция
 ├── capital_growth_dynamic.html   # Capital Growth Dynamic (HF-триггеры)
-├── capital_growth_bear_market_2021.html   # Capital Growth: Bear Market 2021 (реальный медвежий рынок 2021-2022)
+├── capital_growth_full_cycle_2021.html   # Capital Growth: Full Cycle 2021-2024 (реальный медвежий рынок 2021-2022)
 ├── index_extended.html           # Capital Growth расширенная (+ S/G, Y/L)
 ├── hybrid.html                   # Hybrid Model симуляция
 ├── quiz.html                     # Quiz — тренировка принятия решений
@@ -51,7 +51,7 @@ cgs-simulation/
 | `index.html` | Landing page с выбором модели |
 | `capital_growth.html` | Capital Growth — базовая версия (v4.8) |
 | `capital_growth_dynamic.html` | Capital Growth Dynamic — HF-триггеры (v1.0) |
-| `capital_growth_bear_market_2021.html` | Capital Growth: Bear Market 2021 — реальный медвежий рынок 2021-2022 (v1.0) |
+| `capital_growth_full_cycle_2021.html` | Capital Growth: Full Cycle 2021-2024 — реальный медвежий рынок 2021-2022 (v1.0) |
 | `index_extended.html` | Capital Growth — расширенная (v4.9) с S/G и Y/L |
 | `hybrid.html` | Hybrid Model (v1.0) |
 | `quiz.html` | Quiz — тренировка принятия решений (v1.0) |
@@ -398,79 +398,116 @@ if (hfBefore < hfTrigger) {
 
 ---
 
-## Capital Growth: Bear Market 2021 — Реальный медвежий рынок 2021-2022
+## Capital Growth: Full Cycle 2021-2024 — Полный цикл от ATH до нового ATH
 
-Симуляция с использованием исторических данных последнего медвежьего рынка (10 ноября 2021 — 21 ноября 2022).
+Симуляция полного рыночного цикла: падение (реальные данные) + восстановление (расчетные данные).
 
-### Параметры
+### Параметры полного цикла
 
 | Параметр | Значение |
 |----------|----------|
-| Период симуляции | **376 дней** (10.11.2021 — 21.11.2022) |
-| Начальная цена (ATH) | **$68,982** (10 ноября 2021) |
-| Конечная цена (минимум) | **$15,768** (21 ноября 2022) |
-| Ежедневное падение | **-0.45%** (компаунд) |
-| Итоговое падение | **-77.2%** (от $68,982 до $15,768) |
-| HF Trigger | 1.45 |
+| **Полный период** | **866 дней** (10.11.2021 — 14.03.2024) |
+| Начальная цена (ATH 2021) | **$68,982** (10 ноября 2021) |
+| Конечная цена (ATH 2024) | **$73,805** (14 марта 2024) |
+| **Итоговый результат** | **+7%** (новый ATH) |
+
+### Фаза 1: Падение (Bear Market)
+
+| Параметр | Значение |
+|----------|----------|
+| Период | **376 дней** (10.11.2021 — 21.11.2022) |
+| Цены | $68,982 → $15,768 |
+| Падение | **-77.2%** |
+| Данные | **Реальные исторические цены** |
+| События | Terra Luna crash (май), FTX collapse (ноябрь) |
+
+### Фаза 2: Восстановление (Recovery)
+
+| Параметр | Значение |
+|----------|----------|
+| Период | **490 дней** (21.11.2022 — 14.03.2024) |
+| Цены | $15,768 → $73,805 |
+| Рост | **+368%** от минимума |
+| Данные | **Расчетные** (ежедневный рост ~0.317%) |
+| Ежедневный множитель | 1.003174 |
+
+### Общие параметры
+
+| Параметр | Значение |
+|----------|----------|
+| HF Trigger | 1.45 (только в фазе падения) |
 | HF Target | 1.70 |
 | CLMM ренж | -15% / +5% |
 | Yield Zone | 40% GM, 30% CLMM, 30% Reserve |
-| Катализатор минимума | Крах FTX (11 ноября 2022) |
 
 ### Логика симуляции
 
 ```javascript
-const TOTAL_DAYS = 376;
-const START_PRICE = 68982; // Real ATH price on Nov 10, 2021
-const END_PRICE = 15768;   // Real bottom price on Nov 21, 2022
-const DAILY_MULTIPLIER = Math.pow(END_PRICE / START_PRICE, 1 / TOTAL_DAYS);
-// = Math.pow(0.228616..., 1/376) = 0.9954967...
-// Daily drop: ~-0.45%
+const TOTAL_DAYS = 866;  // Full cycle
+const BEAR_MARKET_DAYS = 376;  // Phase 1: Bear market
+const RECOVERY_DAYS = 490;     // Phase 2: Recovery
+
+// Phase 2 recovery parameters
+const RECOVERY_START_PRICE = 15819.79;
+const RECOVERY_END_PRICE = 73805;
+const DAILY_RECOVERY_MULTIPLIER = Math.pow(RECOVERY_END_PRICE / RECOVERY_START_PRICE, 1 / RECOVERY_DAYS);
+// = 1.003174 (daily growth +0.317%)
 
 for (let day = 0; day <= TOTAL_DAYS; day++) {
-  const btcPrice = START_PRICE * Math.pow(DAILY_MULTIPLIER, day);
-  const dropFromInitial = ((btcPrice - START_PRICE) / START_PRICE) * 100;
+  let btcPrice;
 
-  // Trigger logic identical to Capital Growth Dynamic
-  // ...
+  if (day <= BEAR_MARKET_DAYS) {
+    // Phase 1: Use real historical prices from REAL_BTC_PRICES array
+    btcPrice = REAL_BTC_PRICES[day].price;
+  } else {
+    // Phase 2: Calculate recovery price dynamically
+    const recoveryDay = day - BEAR_MARKET_DAYS;
+    btcPrice = RECOVERY_START_PRICE * Math.pow(DAILY_RECOVERY_MULTIPLIER, recoveryDay);
+  }
+
+  // Triggers work ONLY during Phase 1 (bear market)
+  if (day > 0 && day <= BEAR_MARKET_DAYS && hfBefore < hfTrigger) {
+    // Trigger logic...
+  }
 }
 ```
 
-### Расчет ежедневного падения
+### Расчет фазы восстановления
 
-Для достижения падения -77.2% за 376 дней:
-- Начальная цена: $68,982 (100%)
-- Конечная цена: $15,768 (22.86%)
-- Формула: `finalPrice = initialPrice × (dailyMultiplier)^376`
-- `15768 = 68982 × (dailyMultiplier)^376`
-- `dailyMultiplier = (15768/68982)^(1/376) = 0.9954967...`
-- **Ежедневное падение: -0.45%**
+Для достижения роста +368% за 490 дней:
+- Начальная цена: $15,768 (100%)
+- Конечная цена: $73,805 (468%)
+- Формула: `finalPrice = initialPrice × (dailyMultiplier)^490`
+- `73805 = 15768 × (dailyMultiplier)^490`
+- `dailyMultiplier = (73805/15768)^(1/490) = 1.003174`
+- **Ежедневный рост: +0.317%**
 
-Проверка: `68982 × 0.9954967^376 ≈ 15768` ✓
+Проверка: `15768 × 1.003174^490 ≈ 73805` ✓
 
 ### Особенности отображения
 
-- **Таблица:** Показывает все 376 дней с реальными датами
-- **Колонка "Дата":** Отображает реальную дату (формат DD.MM)
-- **Drop (last):** Показывается с 3 знаками после запятой (ежедневное падение малое)
-- **Графики:** Фильтруются (каждый 15-й день + триггеры) для читабельности
-- **Начальная цена:** $68,982 (readonly, нельзя изменить)
+- **Таблица:** Показывает все 866 дней (376 падение + 490 восстановление)
+- **Колонка "Дата":** Реальные даты для Phase 1, расчетные для Phase 2 (формат DD.MM)
+- **Маркер фазы:** День 377 помечен как "🟢 НАЧАЛО ФАЗЫ ВОССТАНОВЛЕНИЯ"
+- **Графики:** Фильтруются (каждый 20-й день + триггеры) для читабельности
+- **Триггеры:** Работают только в фазе падения (дни 1-376)
 
-### Особенности реального медвежьего рынка 2021-2022
+### Ключевые даты цикла 2021-2024
 
 - **10 ноября 2021** — All-Time High Bitcoin ($68,982)
-- **11 ноября 2022** — Крах FTX (начало резкого падения к минимуму)
+- **Май 2022** — Крах Terra Luna (усиление давления на рынок)
+- **11 ноября 2022** — Крах FTX (катализатор финального падения)
 - **21 ноября 2022** — Достижение минимума ($15,768)
-- **Длительность:** 376 дней (~12.5 месяцев)
-- **Контекст:** Повышение процентных ставок ФРС, крах Terra Luna, крах FTX
+- **14 марта 2024** — Новый ATH ($73,805), превышение предыдущего максимума на 7%
 
-### Преимущества симуляции с реальными данными
+### Преимущества симуляции полного цикла
 
-- **Максимальная реалистичность** — использует точные исторические цены
-- **Исторический контекст** — показывает как стратегия работала бы в прошлом
-- **Проверка надежности** — тестирует стратегию на реальных событиях (крах FTX)
-- **Референс** — можно сравнить с другими симуляциями (270 дней)
-- **HF-триггеры** — срабатывают по мере ухудшения позиции, как в реальности
+- **Полная картина** — показывает не только падение, но и восстановление
+- **Реалистичность** — использует точные исторические цены для фазы падения
+- **Долгосрочная перспектива** — 2.4 года от ATH до нового ATH
+- **Проверка стратегии** — как Capital Growth работает в полном рыночном цикле
+- **Сравнение результатов** — BTC восстановился на +7%, а портфель?
+- **Временные рамки** — восстановление заняло на 30% больше времени чем падение
 
 ---
 
@@ -560,7 +597,7 @@ Quiz для проверки понимания стратегии Capital Growt
 - Landing page: https://cgs-simulation.vercel.app
 - Capital Growth: https://cgs-simulation.vercel.app/capital_growth.html
 - Capital Growth Dynamic: https://cgs-simulation.vercel.app/capital_growth_dynamic.html
-- Capital Growth: Bear Market 2021: https://cgs-simulation.vercel.app/capital_growth_bear_market_2021.html
+- Capital Growth: Full Cycle 2021-2024: https://cgs-simulation.vercel.app/capital_growth_full_cycle_2021.html
 - Capital Growth Extended: https://cgs-simulation.vercel.app/index_extended.html
 - Hybrid Model: https://cgs-simulation.vercel.app/hybrid.html
 - Quiz: https://cgs-simulation.vercel.app/quiz.html
@@ -575,7 +612,7 @@ Quiz для проверки понимания стратегии Capital Growt
 | v1.0 | index.html | Landing page — выбор модели |
 | v4.8 | capital_growth.html | Capital Growth базовая |
 | v1.0 | capital_growth_dynamic.html | Capital Growth Dynamic (HF-триггеры) |
-| v1.0 | capital_growth_bear_market_2021.html | Capital Growth: Bear Market 2021 (реальный медвежий рынок 2021-2022) |
+| v1.0 | capital_growth_full_cycle_2021.html | Capital Growth: Full Cycle 2021-2024 (реальный медвежий рынок 2021-2022) |
 | v4.9 | index_extended.html | Capital Growth расширенная с S/G и Y/L |
 | v1.0 | hybrid.html | Hybrid Model |
 | v1.0 | quiz.html | Quiz — тренировка принятия решений |
