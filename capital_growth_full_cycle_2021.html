@@ -389,6 +389,7 @@ Target S/G берется из слайдера Growth/Stability
 </div>
 
 <script src="btc_prices_2021_2022.js"></script>
+<script src="btc_prices_recovery_2022_2024.js"></script>
 <script src="shared.js"></script>
 <script>
 
@@ -467,20 +468,20 @@ function runSimulation() {
   const CLMM_LOWER = 0.85; // -15%
   const CLMM_UPPER = 1.05; // +5%
 
-  // FULL CYCLE: 866 days (BEAR MARKET + RECOVERY)
-  const TOTAL_DAYS = 866;
+  // FULL CYCLE: 849 days (BEAR MARKET + RECOVERY)
   const BEAR_MARKET_DAYS = 376; // Real historical prices (2021-11-10 to 2022-11-21)
-  const RECOVERY_DAYS = 490;    // Calculated recovery (2022-11-21 to 2024-03-14)
+  const RECOVERY_DAYS = 473;    // Real historical prices (2022-11-21 to 2024-03-13)
+  const TOTAL_DAYS = BEAR_MARKET_DAYS + RECOVERY_DAYS; // 849 days total
 
   // Phase 1: Bear Market using real historical BTC prices from REAL_BTC_PRICES array
   // Period: November 10, 2021 ($69,655) to November 21, 2022 ($15,820)
   // Total drop: -77.3% over 376 days
   // Includes real market volatility and key events (Terra Luna, FTX crash)
 
-  // Phase 2: Recovery calculated dynamically
-  // Period: November 21, 2022 ($15,820) to March 14, 2024 ($73,805)
-  // Total growth: +368% over 490 days
-  // Daily growth multiplier: ~1.00317 (+0.317% per day)
+  // Phase 2: Recovery using real historical BTC prices from REAL_BTC_RECOVERY_PRICES array
+  // Period: November 21, 2022 ($15,781) to March 13, 2024 ($73,118)
+  // Total growth: +363% over 473 days
+  // Real market data with actual volatility from Kaggle + CryptoCompare
 
   // Initial state
   const growthZone = total * growthPct;
@@ -520,11 +521,8 @@ function runSimulation() {
     }
   }
 
-  // Recovery phase parameters
-  const RECOVERY_START_PRICE = 15819.79; // Last price from bear market (day 376)
-  const RECOVERY_END_PRICE = 73805;      // New ATH on March 14, 2024
-  const DAILY_RECOVERY_MULTIPLIER = Math.pow(RECOVERY_END_PRICE / RECOVERY_START_PRICE, 1 / RECOVERY_DAYS);
-  // Daily multiplier: ~1.003174 (+0.317% per day)
+  // Recovery phase: Now using real historical data from REAL_BTC_RECOVERY_PRICES
+  // No need for calculated multipliers - all data is real!
 
   const results = [];
   let logHTML = '';
@@ -548,14 +546,16 @@ function runSimulation() {
       btcPrice = REAL_BTC_PRICES[day].price;
       currentDate = REAL_BTC_PRICES[day].date;
     } else {
-      // Phase 2: Calculate recovery price dynamically
-      const recoveryDay = day - BEAR_MARKET_DAYS;
-      btcPrice = RECOVERY_START_PRICE * Math.pow(DAILY_RECOVERY_MULTIPLIER, recoveryDay);
-
-      // Calculate date for recovery phase (approximate)
-      const baseDate = new Date('2022-11-21');
-      baseDate.setDate(baseDate.getDate() + recoveryDay);
-      currentDate = baseDate.toISOString().split('T')[0];
+      // Phase 2: Use real historical prices (recovery)
+      const recoveryDay = day - BEAR_MARKET_DAYS - 1; // -1 because recovery starts at day 0
+      if (recoveryDay >= 0 && recoveryDay < REAL_BTC_RECOVERY_PRICES.length) {
+        btcPrice = REAL_BTC_RECOVERY_PRICES[recoveryDay].price;
+        currentDate = REAL_BTC_RECOVERY_PRICES[recoveryDay].date;
+      } else {
+        // Fallback if out of bounds
+        btcPrice = REAL_BTC_RECOVERY_PRICES[REAL_BTC_RECOVERY_PRICES.length - 1].price;
+        currentDate = REAL_BTC_RECOVERY_PRICES[REAL_BTC_RECOVERY_PRICES.length - 1].date;
+      }
     }
 
     const dropFromInitial = ((btcPrice - REAL_BTC_PRICES[0].price) / REAL_BTC_PRICES[0].price) * 100;
